@@ -41,6 +41,7 @@ import {
   type CatalogEntry,
 } from '@/lib/modelCatalog';
 import type { AiProfile } from '@/lib/ai';
+import { vault } from '@/lib/byokVault';
 
 interface AiSettingsCardProps {
   /** 配置保存成功后的回调 */
@@ -59,7 +60,7 @@ const emptyForm = (): AiProfile => ({
 
 /**
  * AI 服务配置卡片：三套独立存档（接口地址 / 模型 / 思考模式 / 密钥），
- * 可随时切换当前生效的存档。API Key 只写入浏览器 localStorage。
+ * 可随时切换当前生效的存档。API Key 只存在内存保险库，磁盘仅留句柄。
  */
 const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
   const t = useT();
@@ -68,6 +69,11 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
   const [slot, setSlot] = useState<number>(() => getActiveProfile());
   const [form, setForm] = useState<AiProfile>(() => readAiProfiles()[getActiveProfile()] ?? emptyForm());
   const [showKey, setShowKey] = useState(false);
+  const vaultHostRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!vaultHostRef.current) return;
+    return vault.mountVaultControls(vaultHostRef.current);
+  }, []);
   // 「已保存」提示改为快照比较：保存成功后记下当时表单的序列化值，
   // 之后用户一改动表单，快照就不相等，提示自动消失——不需要用 effect 监听 form。
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
@@ -184,11 +190,15 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
   };
 
   const handleSave = () => {
-    if (!form.apiKey.trim() || !form.baseUrl.trim() || !form.model.trim()) return;
+    const typed = form.apiKey.trim();
+    const existing = profiles[slot]?.apiKey ?? '';
+    if ((!typed && !existing) || !form.baseUrl.trim() || !form.model.trim()) return;
+    if (typed && !vault.isHandle(typed)) vault.set(`profile-${slot}`, typed);
+    const handle = typed ? (vault.isHandle(typed) ? typed : vault.handleFor(`profile-${slot}`)) : existing;
     const next: AiProfile = {
       name: form.name?.trim() || '',
       baseUrl: form.baseUrl.trim(),
-      apiKey: form.apiKey.trim(),
+      apiKey: handle,
       model: form.model.trim(),
       reasoningEffort: thinkingModePref(form),
     };
@@ -739,7 +749,7 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
           <Input
             id="ai-key"
             type={showKey ? 'text' : 'password'}
-            value={form.apiKey}
+            value={vault.isHandle(form.apiKey) ? '' : form.apiKey}
             onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
             placeholder="sk-..."
             className="font-mono text-sm pr-10"
@@ -758,14 +768,15 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
       <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/60 px-3 py-2.5 leading-relaxed">
         <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-warning" />
         <span>
-          {t('三个存档各自独立保存（含接口地址、模型、思考模式与密钥），只存在你自己的浏览器 localStorage，不会上传到服务器；请求由浏览器直连你所选服务商。')}
+          {t('三个存档各自独立保存接口地址、模型与思考模式；密钥默认只存在内存中，刷新即消失，绝不写入 localStorage。可设置口令把密钥加密暂存于本标签页。建议使用额度受限、可随时撤销的专用子密钥。')}
         </span>
       </div>
+      <div ref={vaultHostRef} />
 
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={handleSave}
-          disabled={!form.apiKey.trim() || !form.baseUrl.trim() || !form.model.trim()}
+          disabled={(!form.apiKey.trim() && !profiles[slot]?.apiKey) || !form.baseUrl.trim() || !form.model.trim()}
           className="bg-info text-info-foreground hover:bg-info/90 gap-1.5"
         >
           <Save className="h-4 w-4" />

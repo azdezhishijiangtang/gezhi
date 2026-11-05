@@ -1,8 +1,9 @@
 /**
  * AI 答疑服务：OpenAI 兼容接口的配置管理与流式对话。
- * 用户的 API Key 仅保存在浏览器 localStorage，不会上传到任何服务器。
+ * 用户的 API Key 默认只存在内存中；磁盘上只保留不可用于请求的句柄。
  */
 import { isEn } from '@/i18n/lang';
+import { vault } from '@/lib/byokVault';
 
 /** AI 服务配置 */
 export interface AiConfig {
@@ -220,22 +221,47 @@ export interface AiProfile extends AiConfig {
 }
 
 const isValid = (p: AiProfile | null | undefined): p is AiProfile =>
-  Boolean(p && p.baseUrl && p.apiKey && p.model);
+  Boolean(p && p.baseUrl && vault.isHandle(p.apiKey) && p.model);
 
-/** 读取三个存档（旧版单配置会自动迁移到存档 1） */
+/** 写盘 replacer：任何非句柄的明文密钥一律清空，绝不落盘。 */
+const sensitiveReplacer = (_k: string, v: unknown): unknown =>
+  _k === 'apiKey' && typeof v === 'string' && v.length > 0 && !vault.isHandle(v) ? '' : v;
+
+const writeProfiles = (list: (AiProfile | null)[]): void =>
+  localStorage.setItem(PROFILES_KEY, JSON.stringify(list, sensitiveReplacer));
+
+/** 读取三个存档（旧版单配置 / 旧版明文密钥会自动迁移） */
 export const readAiProfiles = (): (AiProfile | null)[] => {
   try {
     const raw = localStorage.getItem(PROFILES_KEY);
     if (raw) {
       const arr = JSON.parse(raw) as (AiProfile | null)[];
-      return Array.from({ length: AI_PROFILE_COUNT }, (_, i) => (isValid(arr[i]) ? arr[i]! : null));
+      const list: (AiProfile | null)[] = Array.from({ length: AI_PROFILE_COUNT }, (_, i) => {
+        const p = arr[i];
+        if (!p) return null;
+        const key = (p as AiProfile).apiKey || '';
+        if (key && !vault.isHandle(key)) {
+          // 升级迁移：旧版明文密钥搬进内存保险库，句柄写回磁盘
+          vault.set(`profile-${i}`, key);
+          (p as AiProfile).apiKey = vault.handleFor(`profile-${i}`);
+        }
+        return isValid(p) ? p : null;
+      });
+      // 每次读取都覆写一次，确保磁盘上永远不存在明文密钥
+      writeProfiles(list);
+      return list;
     }
     // 迁移：旧版单配置 → 存档 1
     const legacy = localStorage.getItem(CONFIG_KEY);
     if (legacy) {
       const parsed = JSON.parse(legacy) as AiProfile;
+      if (parsed?.apiKey && !vault.isHandle(parsed.apiKey)) {
+        vault.set('profile-0', parsed.apiKey);
+        parsed.apiKey = vault.handleFor('profile-0');
+      }
       const list: (AiProfile | null)[] = [isValid(parsed) ? parsed : null, null, null];
-      localStorage.setItem(PROFILES_KEY, JSON.stringify(list));
+      writeProfiles(list);
+      localStorage.removeItem(CONFIG_KEY);
       return list;
     }
   } catch {
@@ -247,14 +273,14 @@ export const readAiProfiles = (): (AiProfile | null)[] => {
 export const saveAiProfile = (index: number, profile: AiProfile): void => {
   const list = readAiProfiles();
   list[index] = profile;
-  localStorage.setItem(PROFILES_KEY, JSON.stringify(list));
+  writeProfiles(list);
   setActiveProfile(index);
 };
 
 export const clearAiProfile = (index: number): void => {
   const list = readAiProfiles();
   list[index] = null;
-  localStorage.setItem(PROFILES_KEY, JSON.stringify(list));
+  writeProfiles(list);
   // 清掉的正好是当前生效的：切到另一个已配置的存档，否则清空生效配置
   if (getActiveProfile() === index) {
     const next = list.findIndex(isValid);
@@ -274,7 +300,7 @@ export const getActiveProfile = (): number => {
 export const setActiveProfile = (index: number): void => {
   localStorage.setItem(ACTIVE_KEY, String(index));
   const p = readAiProfiles()[index];
-  if (isValid(p)) localStorage.setItem(CONFIG_KEY, JSON.stringify(p));
+  if (isValid(p)) localStorage.setItem(CONFIG_KEY, JSON.stringify(p, sensitiveReplacer));
   else localStorage.removeItem(CONFIG_KEY);
 };
 
@@ -285,7 +311,7 @@ export const readAiConfig = (): AiConfig | null => {
     const raw = localStorage.getItem(CONFIG_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AiConfig;
-    if (!parsed?.baseUrl || !parsed?.apiKey || !parsed?.model) return null;
+    if (!parsed?.baseUrl || !vault.isHandle(parsed?.apiKey) || !parsed?.model) return null;
     return parsed;
   } catch {
     return null;
@@ -526,10 +552,10 @@ export const fetchModels = async (
   signal?: AbortSignal,
 ): Promise<string[]> => {
   const url = `${baseUrl.replace(/\/+$/, '')}/models`;
-  const res = await fetch(url, {
+  const res = await vault.secureFetch(url, {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: vault.authHeaders(apiKey).Authorization,
       'Content-Type': 'application/json',
     },
     signal,
@@ -656,11 +682,11 @@ export async function* streamChat(
   };
 
   const post = (withThinking: boolean) =>
-    fetch(url, {
+    vault.secureFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: vault.authHeaders(config.apiKey).Authorization,
       },
       body: buildBody(withThinking),
       signal,
@@ -766,11 +792,11 @@ export const chatOnce = async (
       ...(withThinking ? thinkingParams(config.baseUrl, config.model, mode) : {}),
     });
   const post = (withThinking: boolean) =>
-    fetch(url, {
+    vault.secureFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: vault.authHeaders(config.apiKey).Authorization,
       },
       body: buildBody(withThinking),
       signal,

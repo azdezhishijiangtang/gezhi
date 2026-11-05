@@ -8,18 +8,38 @@
  *   导入时自动归属到本机登录的账号 id）。
  *
  * 为什么选 Gist：本站是纯静态站、没有服务器；secret Gist 不公开列出，
- * 不知道 ID 就读不到，学习档案敏感性低，够用。PAT 只存本机 localStorage，
- * 请求直连 api.github.com（官方允许跨域）。
+ * 不知道 ID 就读不到，学习档案敏感性低，够用。GitHub PAT 与 AI 密钥一样
+ * 只存内存保险库，磁盘上只留句柄；请求直连 api.github.com（官方允许跨域）。
  */
 import type { ArchivePayload } from '@/lib/archiveSync';
+import { vault } from '@/lib/byokVault';
 
 const PAT_KEY = 'mathlens-gist-pat';
 const GIST_ID_KEY = 'mathlens-gist-id';
+const PAT_SLOT = 'gist-pat';
 const FILE_NAME = 'principia-archive.json';
 
-/** PAT 只在本机使用与保存（上传/更新需要；拉取不需要） */
-export const loadPat = (): string => localStorage.getItem(PAT_KEY) || '';
-export const savePat = (pat: string): void => localStorage.setItem(PAT_KEY, pat.trim());
+/** PAT 只存内存保险库；磁盘仅留句柄（上传/更新需要；拉取不需要） */
+export const loadPat = (): string => {
+  const raw = localStorage.getItem(PAT_KEY) || '';
+  if (raw && !vault.isHandle(raw)) {
+    // 升级迁移：清掉旧版明文 PAT
+    vault.set(PAT_SLOT, raw);
+    localStorage.setItem(PAT_KEY, vault.handleFor(PAT_SLOT));
+    return vault.handleFor(PAT_SLOT);
+  }
+  return raw;
+};
+export const savePat = (pat: string): void => {
+  const typed = pat.trim();
+  if (typed && !vault.isHandle(typed)) {
+    vault.set(PAT_SLOT, typed);
+    localStorage.setItem(PAT_KEY, vault.handleFor(PAT_SLOT));
+  } else if (!typed) {
+    vault.clearSlot(PAT_SLOT);
+    localStorage.removeItem(PAT_KEY);
+  }
+};
 
 /** 本机最近一次上传得到的同步 ID，方便下次直接更新 */
 export const loadGistId = (): string => localStorage.getItem(GIST_ID_KEY) || '';
@@ -53,11 +73,14 @@ export async function uploadArchive(
     public: false,
     files: { [FILE_NAME]: { content: JSON.stringify(payload, null, 2) } },
   };
-  const res = await fetch(gistId ? `${GH}/gists/${gistId}` : `${GH}/gists`, {
+  // 兼容直接传入明文 PAT 的调用：先收入保险库，再统一用句柄取用
+  if (pat && !vault.isHandle(pat)) vault.set(PAT_SLOT, pat);
+  const auth = vault.authHeaders(vault.isHandle(pat) ? pat : vault.handleFor(PAT_SLOT)).Authorization;
+  const res = await vault.secureFetch(gistId ? `${GH}/gists/${gistId}` : `${GH}/gists`, {
     method: gistId ? 'PATCH' : 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${pat}`,
+      Authorization: auth,
       Accept: 'application/vnd.github+json',
     },
     body: JSON.stringify(body),
