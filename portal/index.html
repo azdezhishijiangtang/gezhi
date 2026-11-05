@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数理答疑平台 · 高中区 &amp; 大学区</title>
+<meta name="description" content="一个门厅，两个校区：高中区（问渠·高中理科学习工作台）与大学区（Principia·大学数学物理知识解答平台）。">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #070b14;
+    --ink: #e8ebf4;
+    --ink-dim: #97a0b5;
+    --ink-faint: #5d667c;
+    --hs-a: #34d399;  /* 高中 · 翡翠 */
+    --hs-b: #22d3ee;  /* 高中 · 清青 */
+    --un-a: #818cf8;  /* 大学 · 靛蓝 */
+    --un-b: #c084fc;  /* 大学 · 紫 */
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ── 背景：坐标网格 + 双色柔光 ─────────────── */
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(148,163,184,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.045) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 40%, #000 30%, transparent 100%);
+            mask-image: radial-gradient(ellipse 90% 75% at 50% 40%, #000 30%, transparent 100%);
+  }
+  .glow { position: fixed; z-index: 0; pointer-events: none; border-radius: 50%; filter: blur(110px); }
+  .glow.hs { width: 520px; height: 520px; left: -140px; top: -120px; background: rgba(34,211,238,.13); }
+  .glow.un { width: 560px; height: 560px; right: -160px; bottom: -160px; background: rgba(129,140,248,.13); }
+
+  main {
+    position: relative; z-index: 1;
+    flex: 1; width: 100%;
+    max-width: 1060px; margin: 0 auto;
+    padding: 64px 28px 40px;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── 门厅抬头 ─────────────────────────────── */
+  header.masthead { text-align: center; margin-bottom: 56px; }
+  .masthead .kicker {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 12.5px; letter-spacing: .35em; text-indent: .35em;
+    color: var(--ink-faint); text-transform: uppercase;
+    margin-bottom: 22px;
+  }
+  .masthead .kicker::before, .masthead .kicker::after {
+    content: ""; display: block; width: 34px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--ink-faint));
+  }
+  .masthead .kicker::after { background: linear-gradient(90deg, var(--ink-faint), transparent); }
+
+  h1.site-title {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, Georgia, serif;
+    font-size: clamp(34px, 6vw, 52px);
+    font-weight: 700; letter-spacing: .12em; text-indent: .12em;
+    line-height: 1.2;
+  }
+  h1.site-title .amp {
+    font-style: italic; font-family: Georgia, serif;
+    background: linear-gradient(100deg, var(--hs-b), var(--un-a));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    padding: 0 .08em;
+  }
+  .masthead .sub {
+    margin-top: 18px; color: var(--ink-dim);
+    font-size: clamp(14px, 2vw, 16px); letter-spacing: .06em;
+  }
+  .masthead .sub b { color: var(--ink); font-weight: 600; }
+
+  /* ── 两校区卡片 ────────────────────────────── */
+  .zones {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 26px;
+    align-items: stretch;
+  }
+  @media (max-width: 780px) { .zones { grid-template-columns: 1fr; gap: 20px; } }
+
+  .zone {
+    position: relative; display: flex; flex-direction: column;
+    text-decoration: none; color: inherit;
+    border: 1px solid rgba(148,163,184,.16);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(148,163,184,.055), rgba(148,163,184,.02));
+    padding: 34px 30px 28px;
+    overflow: hidden;
+    transition: transform .28s cubic-bezier(.22,.9,.34,1.2), border-color .28s, box-shadow .28s, background .28s;
+  }
+  .zone:hover, .zone:focus-visible {
+    transform: translateY(-6px);
+    outline: none;
+  }
+  .zone.hs:hover, .zone.hs:focus-visible {
+    border-color: rgba(34,211,238,.55);
+    box-shadow: 0 22px 60px -18px rgba(34,211,238,.35), 0 0 0 1px rgba(34,211,238,.18) inset;
+    background: linear-gradient(180deg, rgba(34,211,238,.09), rgba(148,163,184,.02));
+  }
+  .zone.un:hover, .zone.un:focus-visible {
+    border-color: rgba(129,140,248,.55);
+    box-shadow: 0 22px 60px -18px rgba(129,140,248,.35), 0 0 0 1px rgba(129,140,248,.18) inset;
+    background: linear-gradient(180deg, rgba(129,140,248,.09), rgba(148,163,184,.02));
+  }
+
+  /* 卡片角落大数学符号 */
+  .zone .glyph {
+    position: absolute; top: -26px; right: 6px;
+    font-family: Georgia, "Times New Roman", serif; font-style: italic;
+    font-size: 170px; line-height: 1; user-select: none; pointer-events: none;
+    opacity: .07; transition: opacity .3s, transform .5s cubic-bezier(.22,.9,.34,1.2);
+  }
+  .zone.hs .glyph { color: var(--hs-b); }
+  .zone.un .glyph { color: var(--un-a); }
+  .zone:hover .glyph { opacity: .16; transform: rotate(-6deg) scale(1.05); }
+
+  .zone .badge {
+    display: inline-block; width: fit-content;
+    font-size: 12px; letter-spacing: .28em; text-indent: .28em;
+    padding: 7px 13px 7px 15px; border-radius: 999px;
+    margin-bottom: 20px;
+  }
+  .zone.hs .badge { color: var(--hs-b); border: 1px solid rgba(34,211,238,.35); background: rgba(34,211,238,.08); }
+  .zone.un .badge { color: var(--un-a); border: 1px solid rgba(129,140,248,.35); background: rgba(129,140,248,.08); }
+
+  .zone h2 {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, Georgia, serif;
+    font-size: clamp(26px, 3.4vw, 32px); font-weight: 700; letter-spacing: .05em;
+    margin-bottom: 6px;
+  }
+  .zone.hs h2 em, .zone.un h2 em {
+    font-style: normal; font-family: Georgia, serif;
+  }
+  .zone.hs h2 { background: linear-gradient(95deg, var(--hs-a), var(--hs-b)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .zone.un h2 { background: linear-gradient(95deg, var(--un-a), var(--un-b)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  .zone .tagline {
+    font-family: "Noto Serif SC", "Songti SC", SimSun, Georgia, serif;
+    color: var(--ink-dim); font-size: 14.5px; letter-spacing: .08em;
+    margin-bottom: 14px;
+  }
+  .zone .desc {
+    color: var(--ink-dim); font-size: 14.5px; line-height: 1.85;
+    margin-bottom: 22px;
+  }
+
+  .zone .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+  .zone .chip {
+    font-size: 12.5px; color: var(--ink-dim);
+    border: 1px solid rgba(148,163,184,.22); border-radius: 8px;
+    padding: 5px 10px; letter-spacing: .04em;
+    background: rgba(7,11,20,.35);
+  }
+
+  .zone .enter {
+    margin-top: auto;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 15px; font-weight: 600; letter-spacing: .1em;
+  }
+  .zone.hs .enter { color: var(--hs-b); }
+  .zone.un .enter { color: var(--un-a); }
+  .zone .enter .arrow { transition: transform .25s; font-size: 18px; }
+  .zone:hover .enter .arrow { transform: translateX(6px); }
+
+  /* ── 底注 ─────────────────────────────────── */
+  footer.notice {
+    position: relative; z-index: 1;
+    text-align: center; padding: 30px 20px 40px;
+    color: var(--ink-faint); font-size: 13px; line-height: 2; letter-spacing: .04em;
+  }
+  footer.notice .sep { margin: 0 .6em; opacity: .5; }
+  footer.notice a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px dashed rgba(148,163,184,.3); }
+  footer.notice a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="glow hs"></div>
+  <div class="glow un"></div>
+
+  <main>
+    <header class="masthead">
+      <div class="kicker">One Hall · Two Wings</div>
+      <h1 class="site-title">数理答疑平台<span class="amp">&amp;</span></h1>
+      <p class="sub">一个门厅，两个校区 —— <b>高中区</b>与<b>大学区</b>，学习档案各自独立、互不干扰。</p>
+    </header>
+
+    <section class="zones">
+      <!-- 高中区 · 问渠 -->
+      <a class="zone hs" href="./highschool/">
+        <span class="glyph" aria-hidden="true">∑</span>
+        <span class="badge">高中区</span>
+        <h2>问渠 <em>·</em> 理科工作台</h2>
+        <p class="tagline">问渠那得清如许，为有源头活水来</p>
+        <p class="desc">面向高中数理化的学习工作台：把答疑、错题与复习计划收在一处，拍照识题、随问随答，错题自动归档。</p>
+        <div class="chips">
+          <span class="chip">AI 答疑</span>
+          <span class="chip">错题本</span>
+          <span class="chip">学习计划</span>
+          <span class="chip">公式速查</span>
+          <span class="chip">拍照识题</span>
+        </div>
+        <span class="enter">进入高中区 <span class="arrow">→</span></span>
+      </a>
+
+      <!-- 大学区 · Principia -->
+      <a class="zone un" href="./university/">
+        <span class="glyph" aria-hidden="true">∫</span>
+        <span class="badge">大学区</span>
+        <h2>Principia <em>·</em> 数物解答</h2>
+        <p class="tagline">Hypotheses non fingo —— 我不杜撰假说</p>
+        <p class="desc">面向大学数学与物理的知识解答平台：公式库、分级题库、课程脉络与知识图谱，答疑记录与学习档案支持云端同步。</p>
+        <div class="chips">
+          <span class="chip">AI 答疑</span>
+          <span class="chip">公式库</span>
+          <span class="chip">题库精讲</span>
+          <span class="chip">课程导览</span>
+          <span class="chip">知识图谱</span>
+          <span class="chip">档案云同步</span>
+        </div>
+        <span class="enter">进入大学区 <span class="arrow">→</span></span>
+      </a>
+    </section>
+  </main>
+
+  <footer class="notice">
+    两区数据各自独立保存于本机浏览器，切换校区互不影响<span class="sep">·</span>建议使用桌面浏览器获得完整体验
+  </footer>
+</body>
+</html>

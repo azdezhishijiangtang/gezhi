@@ -1,0 +1,30 @@
+/** Navbar 可见文案英文映射 */
+const dict: Record<string, string> = {
+  '首页': 'Home',
+  '课程': 'Courses',
+  '知识库': 'Knowledge',
+  'AI 答疑': 'AI Tutor',
+  '例题广场': 'Problems',
+  '公式速查': 'Formulas',
+  '错题本': 'Mistakes',
+  '关于': 'About',
+  '搜索知识 / 例题': 'Search knowledge / problems',
+  '搜索知识点与例题': 'Search topics and problems',
+  '搜索': 'Search',
+  '切换到数学区': 'Switch to Mathematics',
+  '切换到物理区': 'Switch to Physics',
+  '数学': 'Math',
+  '物理': 'Physics',
+  '用户菜单': 'User menu',
+  '个人中心': 'Profile',
+  '学习档案': 'Study Archive',
+  '退出登录': 'Sign Out',
+  '登录': 'Sign In',
+  '打开菜单': 'Open menu',
+  '关闭菜单': 'Close menu',
+  '切换语言': 'Switch language',
+  '切换到日光模式': 'Switch to light mode',
+  '切换到月光模式': 'Switch to dark mode',
+};
+
+export default dict;

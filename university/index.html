@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Principia · 大学数学物理本科知识解答平台</title>
+    <meta
+      name="description"
+      content="Principia 面向大学本科生与考研学生，覆盖数学系与物理系本科核心课程。提供规范公式排版的知识讲解、分步提示与完整解答的例题详解、公式速查表，并有 AI 助教随身答疑。"
+    />
+    <meta name="author" content="Principia" />
+    <meta name="keywords" content="Principia,大学数学,大学物理,高等数学,线性代数,概率论,力学,电磁学,量子力学,数学讲解,物理讲解,例题详解,考研,公式速查" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <script>
+      // 主题防闪烁：在 React 挂载前同步日光/月光模式
+      (function () {
+        try {
+          var t = localStorage.getItem('mathlens-theme');
+          if (t !== 'light' && t !== 'dark') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          if (t === 'dark') document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = t;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

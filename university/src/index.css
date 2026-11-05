@@ -1,0 +1,694 @@
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@400;600;700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "katex/dist/katex.min.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* === 圆角 === */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* === 衬线字体（学术标题） === */
+  --font-serif: var(--font-family-serif);
+  --font-mono: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+
+  /* === 核心颜色 === */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* === 功能颜色 (新增) === */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* === 主题特色颜色 (新增) === */
+  --color-theme-red: var(--theme-red);
+  --color-theme-green: var(--theme-green);
+  --color-theme-gold: var(--theme-gold);
+  --color-theme-blue: var(--theme-blue);
+
+  /* === 图表颜色 === */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* === 侧边栏颜色 === */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* === Hero 区域颜色 (新增) === */
+  --color-hero: var(--hero);
+  --color-hero-foreground: var(--hero-foreground);
+
+  /* === 阴影 === */
+  --shadow-sm: var(--ds-shadow-sm);
+  --shadow-md: var(--ds-shadow-md);
+  --shadow-lg: var(--ds-shadow-lg);
+  --shadow-xl: var(--ds-shadow-xl);
+
+  /* === 字号（仅覆盖基础 3 级，默认值与 Tailwind 一致） === */
+  --text-xs: var(--font-size-small);
+  --text-sm: var(--font-size-label);
+  --text-base: var(--font-size-body);
+}
+
+:root {
+  /* === 圆角基准值（瑞士风格：锐利的直角） === */
+  --radius: 0px;
+
+  /* === 字体排版 === */
+  --font-family: "Atkinson Hyperlegible", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-family-serif: "Crimson Pro", "Noto Serif SC", Georgia, "Times New Roman", serif;
+  --font-size-display: 3.5rem;
+  --font-size-headline: 2rem;
+  --font-size-title: 1.5rem;
+  --font-size-body: 1rem;
+  --font-size-label: 0.875rem;
+  --font-size-small: 0.75rem;
+  --font-weight-bold: 700;
+  --font-weight-semibold: 600;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --line-height: 1.5;
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-normal: 0;
+
+  /* === 间距系统 === */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
+
+  /* === 阴影层级（瑞士风格：扁平化，仅悬浮层使用） === */
+  --ds-shadow-sm: 0 0 0 0 transparent;
+  --ds-shadow-md: 0 0 0 0 transparent;
+  --ds-shadow-lg: 0 8px 24px oklch(0.279 0.037 260 / 0.10);
+  --ds-shadow-xl: 0 16px 48px oklch(0.279 0.037 260 / 0.14);
+  /* 向后兼容别名（供原生 CSS var(--shadow-*) 引用使用） */
+  --shadow-sm: var(--ds-shadow-sm);
+  --shadow-md: var(--ds-shadow-md);
+  --shadow-lg: var(--ds-shadow-lg);
+  --shadow-xl: var(--ds-shadow-xl);
+
+  /* === 动效时间 === */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* === 背景颜色（学术蓝灰体系） === */
+  --background: oklch(0.984 0.003 247.9);
+  --foreground: oklch(0.279 0.037 260.0);
+
+  /* === 卡片 === */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.279 0.037 260.0);
+
+  /* === 弹出层 === */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.279 0.037 260.0);
+
+  /* === 主色调 === */
+  --primary: oklch(0.446 0.037 257.3);
+  --primary-foreground: oklch(0.985 0.002 247.9);
+
+  /* === 次要色 === */
+  --secondary: oklch(0.968 0.007 247.9);
+  --secondary-foreground: oklch(0.279 0.037 260.0);
+
+  /* === 柔和色 === */
+  --muted: oklch(0.968 0.007 247.9);
+  --muted-foreground: oklch(0.554 0.041 257.4);
+
+  /* === 强调色 === */
+  --accent: oklch(0.968 0.007 247.9);
+  --accent-foreground: oklch(0.279 0.037 260.0);
+
+  /* === 危险/错误色 === */
+  --destructive: oklch(0.577 0.245 27.325);
+
+  /* === 边框和输入框 === */
+  --border: oklch(0.929 0.013 255.5);
+  --input: oklch(0.929 0.013 255.5);
+  --ring: oklch(0.546 0.215 262.9);
+
+  /* === 功能颜色 (新增) === */
+  --success: oklch(0.596 0.145 163.225);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.75 0.183 55.934);
+  --warning-foreground: oklch(0.205 0 0);
+  --info: oklch(0.546 0.215 262.9);
+  --info-foreground: oklch(0.985 0 0);
+
+  /* === 主题特色颜色 (新增) === */
+  --theme-red: oklch(0.577 0.245 27.325);
+  --theme-green: oklch(0.518 0.155 155.713);
+  --theme-gold: oklch(0.75 0.183 55.934);
+  --theme-blue: oklch(0.546 0.215 262.9);
+
+  /* === 图表颜色（学术蓝灰体系） === */
+  --chart-1: oklch(0.546 0.215 262.9);
+  --chart-2: oklch(0.446 0.037 257.3);
+  --chart-3: oklch(0.596 0.145 163.225);
+  --chart-4: oklch(0.75 0.183 55.934);
+  --chart-5: oklch(0.554 0.041 257.4);
+
+  /* === 侧边栏 === */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.279 0.037 260.0);
+  --sidebar-primary: oklch(0.446 0.037 257.3);
+  --sidebar-primary-foreground: oklch(0.985 0.002 247.9);
+  --sidebar-accent: oklch(0.968 0.007 247.9);
+  --sidebar-accent-foreground: oklch(0.279 0.037 260.0);
+  --sidebar-border: oklch(0.929 0.013 255.5);
+  --sidebar-ring: oklch(0.546 0.215 262.9);
+
+  /* === Hero 区域（深蓝灰学术底色） === */
+  --hero: oklch(0.279 0.037 260.0);
+  --hero-foreground: oklch(0.985 0.002 247.9);
+
+  /* === 动画 Token === */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dark {
+  /* === 阴影层级 (深色模式) === */
+  --ds-shadow-sm: 0 0 0 0 transparent;
+  --ds-shadow-md: 0 0 0 0 transparent;
+  --ds-shadow-lg: 0 8px 24px oklch(0 0 0 / 0.4);
+  --ds-shadow-xl: 0 16px 48px oklch(0 0 0 / 0.5);
+  --shadow-sm: var(--ds-shadow-sm);
+  --shadow-md: var(--ds-shadow-md);
+  --shadow-lg: var(--ds-shadow-lg);
+  --shadow-xl: var(--ds-shadow-xl);
+
+  /* === 背景颜色 === */
+  --background: oklch(0.208 0.021 260.0);
+  --foreground: oklch(0.968 0.007 247.9);
+
+  /* === 卡片 === */
+  --card: oklch(0.279 0.037 260.0);
+  --card-foreground: oklch(0.968 0.007 247.9);
+
+  /* === 弹出层 === */
+  --popover: oklch(0.279 0.037 260.0);
+  --popover-foreground: oklch(0.968 0.007 247.9);
+
+  /* === 主色调 === */
+  --primary: oklch(0.929 0.013 255.5);
+  --primary-foreground: oklch(0.279 0.037 260.0);
+
+  /* === 次要色 === */
+  --secondary: oklch(0.335 0.035 260.0);
+  --secondary-foreground: oklch(0.968 0.007 247.9);
+
+  /* === 柔和色 === */
+  --muted: oklch(0.335 0.035 260.0);
+  --muted-foreground: oklch(0.704 0.035 257.4);
+
+  /* === 强调色 === */
+  --accent: oklch(0.335 0.035 260.0);
+  --accent-foreground: oklch(0.968 0.007 247.9);
+
+  /* === 危险/错误色 === */
+  --destructive: oklch(0.704 0.191 22.216);
+
+  /* === 边框和输入框 === */
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.623 0.214 259.815);
+
+  /* === 功能颜色 (新增) === */
+  --success: oklch(0.648 0.15 163.225);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.8 0.165 55.934);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.623 0.214 259.815);
+  --info-foreground: oklch(0.145 0 0);
+
+  /* === 主题特色颜色 (新增) === */
+  --theme-red: oklch(0.704 0.191 22.216);
+  --theme-green: oklch(0.648 0.15 163.225);
+  --theme-gold: oklch(0.8 0.165 55.934);
+  --theme-blue: oklch(0.623 0.214 259.815);
+
+  /* === 图表颜色 === */
+  --chart-1: oklch(0.623 0.214 259.815);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+
+  /* === 侧边栏 === */
+  --sidebar: oklch(0.279 0.037 260.0);
+  --sidebar-foreground: oklch(0.968 0.007 247.9);
+  --sidebar-primary: oklch(0.623 0.214 259.815);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
+  --sidebar-accent: oklch(0.335 0.035 260.0);
+  --sidebar-accent-foreground: oklch(0.968 0.007 247.9);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0.041 257.4);
+
+  /* === Hero 区域 (新增) === */
+  --hero: oklch(0.335 0.035 260.0);
+  --hero-foreground: oklch(0.968 0.007 247.9);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* 兜底：宽元素不得撑出横向滚动，否则页面右移出现“右侧空白带” */
+    overflow-x: clip;
+  }
+  /* 学术风格：标题使用衬线字体 */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-family-serif);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: oklch(0.546 0.215 262.9 / 0.18);
+  }
+  html {
+    scroll-behavior: smooth;
+    /* 兜底：禁止页面横向溢出（修复中英切换后右侧出现空白的问题） */
+    overflow-x: clip;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+}
+
+/* ================================================================
+   学术排版辅助样式
+   ================================================================ */
+
+/* KaTeX 公式块：允许横向滚动，行内公式基线对齐 */
+.katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+.katex {
+  font-size: 1.1em;
+}
+
+/* 证明/解答区域的编号引用样式 */
+.prose-math p {
+  margin: 0.75em 0;
+  line-height: 1.8;
+}
+.prose-math strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+/* 学术正文排版（Markdown + LaTeX） */
+.prose-math h1 {
+  font-size: var(--font-size-headline);
+  margin: 1.5em 0 0.75em;
+  line-height: 1.3;
+}
+.prose-math h2 {
+  font-size: var(--font-size-title);
+  margin: 1.6em 0 0.75em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.35;
+}
+.prose-math h3 {
+  font-size: var(--font-size-body);
+  margin: 1.4em 0 0.6em;
+  line-height: 1.4;
+}
+.prose-math h4 {
+  font-size: var(--font-size-label);
+  margin: 1.2em 0 0.5em;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+.prose-math ul,
+.prose-math ol {
+  margin: 0.75em 0;
+  padding-left: 1.75em;
+  line-height: 1.8;
+}
+.prose-math ul { list-style-type: disc; }
+.prose-math ol { list-style-type: decimal; }
+.prose-math li { margin: 0.35em 0; }
+.prose-math li::marker { color: var(--muted-foreground); }
+.prose-math blockquote {
+  margin: 1em 0;
+  padding: 0.75em 1.25em;
+  border-left: 3px solid var(--info);
+  background: var(--secondary);
+  color: var(--foreground);
+  font-size: var(--font-size-label);
+  line-height: 1.75;
+}
+.prose-math blockquote strong { color: var(--info); }
+.prose-math table {
+  width: 100%;
+  margin: 1em 0;
+  border-collapse: collapse;
+  font-size: var(--font-size-label);
+}
+.prose-math th {
+  text-align: left;
+  padding: 0.6em 0.9em;
+  border-bottom: 2px solid var(--foreground);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.prose-math td {
+  padding: 0.6em 0.9em;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.prose-math tbody tr:last-child td { border-bottom: none; }
+
+/* 细网格背景纹理（Hero 区，瑞士风格几何网格） */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, oklch(0.929 0.013 255.5 / 0.5) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.929 0.013 255.5 / 0.5) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Tailwind v4: container no longer auto-centers. Restore v3 behavior.
+   需求：内容铺满整个屏幕宽度。
+   注意：Tailwind v4 内置 container 会额外生成 5 档 @media max-width 断点规则，
+   仅在 @utility 里省略 max-width 无法覆盖它们，必须显式声明 max-width 才能压过内置规则 */
+@utility container {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+/* 兜底：强制压掉 Tailwind v4 内置生成的 .container 断点 max-width（确保任何顺序下都铺满） */
+.container {
+  max-width: 100% !important;
+}
+
+/* ================================================================
+   Page Transition System — uses CSS transition (NOT @keyframes)
+   to avoid onAnimationEnd bubbling issues from child elements.
+   
+   Supported modes (set via data-transition attribute):
+     fade        — opacity only (default, safest)
+     slide-up    — opacity + translateY (content rises into view)
+     slide-fade  — opacity + translateX (horizontal slide)
+     blur-fade   — opacity + filter:blur (frosted glass feel)
+     scale       — opacity + scale (zoom in/out)
+     bounce      — opacity + scale with bounce easing
+     none        — instant swap, no animation
+   ================================================================ */
+.page-transition {
+  transition:
+    opacity var(--duration-normal, 200ms) var(--ease-default, ease),
+    transform var(--duration-normal, 200ms) var(--ease-default, ease),
+    filter var(--duration-normal, 200ms) var(--ease-default, ease);
+}
+
+/* === Default: fade (opacity only) === */
+.page-transition.fade-out { opacity: 0; }
+.page-transition.fade-in  { opacity: 1; }
+
+/* === slide-up === */
+.page-transition[data-transition="slide-up"].fade-out {
+  opacity: 0;
+  transform: translateY(24px);
+}
+.page-transition[data-transition="slide-up"].fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* === slide-fade (horizontal) === */
+.page-transition[data-transition="slide-fade"].fade-out {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+.page-transition[data-transition="slide-fade"].fade-in {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* === blur-fade (glassmorphism) === */
+.page-transition[data-transition="blur-fade"].fade-out {
+  opacity: 0;
+  filter: blur(12px);
+}
+.page-transition[data-transition="blur-fade"].fade-in {
+  opacity: 1;
+  filter: blur(0px);
+}
+
+/* === scale (zoom) === */
+.page-transition[data-transition="scale"].fade-out {
+  opacity: 0;
+  transform: scale(0.96);
+}
+.page-transition[data-transition="scale"].fade-in {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* === bounce (scale + bounce easing override) === */
+.page-transition[data-transition="bounce"] {
+  transition:
+    opacity var(--duration-normal, 200ms) var(--ease-default, ease),
+    transform var(--duration-slow, 300ms) var(--ease-bounce, cubic-bezier(0.34, 1.56, 0.64, 1)),
+    filter var(--duration-normal, 200ms) var(--ease-default, ease);
+}
+.page-transition[data-transition="bounce"].fade-out {
+  opacity: 0;
+  transform: scale(0.92);
+}
+.page-transition[data-transition="bounce"].fade-in {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* === none (instant) === */
+.page-transition[data-transition="none"] {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition {
+    transition: none !important;
+  }
+}
+
+/* === 打印 / 导出 PDF === */
+#print-doc { display: none; }
+
+@media print {
+  /* 只显示打印文档：用 visibility 隐藏其余内容（保留布局，确保 KaTeX 公式尺寸正确） */
+  body > * { visibility: hidden !important; }
+  #print-doc,
+  #print-doc * { visibility: visible !important; }
+
+  #print-doc {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    color: #111;
+    background: #fff;
+    font-family: Georgia, "Times New Roman", "Songti SC", serif;
+  }
+
+  @page { margin: 18mm 16mm; }
+
+  .print-title {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0 0 6px;
+  }
+  .print-brand {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: #888;
+    margin: 0 0 10px;
+    text-transform: uppercase;
+  }
+  .print-meta {
+    font-size: 12px;
+    color: #555;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #ddd;
+  }
+  .print-body { font-size: 14px; line-height: 1.7; }
+  .print-section { break-inside: avoid; margin: 0 0 22px; }
+  .print-section h3 { break-after: avoid; margin: 0 0 6px; }
+  .print-hint,
+  .print-sol { margin-top: 10px; }
+  .print-hint::before {
+    content: "提示：";
+    font-weight: 700;
+    color: #b45309;
+  }
+  .print-sol::before {
+    content: "解答：";
+    font-weight: 700;
+    color: #1d4ed8;
+  }
+  .katex-display { break-inside: avoid; }
+}
+
+/* === 打印：多份总结合并 === */
+@media print {
+  .print-summary-block { margin: 0; }
+  .print-page-break { break-before: page; }
+  .print-subtitle {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: #111;
+  }
+  .print-submeta {
+    font-size: 12px;
+    color: #555;
+    margin: 0 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #ddd;
+  }
+}
+
+/* === 导出 PDF 用的离屏文档容器（强制浅色，避免深色模式白底黑字失效） === */
+#pdf-export-root {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 760px;
+  color-scheme: light;
+  --background: oklch(0.984 0.003 247.9);
+  --foreground: oklch(0.279 0.037 260.0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.279 0.037 260.0);
+  --muted: oklch(0.968 0.007 247.9);
+  --muted-foreground: oklch(0.554 0.041 257.4);
+  --secondary: oklch(0.968 0.007 247.9);
+  --secondary-foreground: oklch(0.279 0.037 260.0);
+  --border: oklch(0.929 0.013 255.5);
+  --info: oklch(0.546 0.215 262.9);
+  --info-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.446 0.037 257.3);
+  --primary-foreground: oklch(0.985 0.002 247.9);
+  --destructive: oklch(0.577 0.245 27.325);
+  --warning: oklch(0.75 0.183 55.934);
+  --success: oklch(0.596 0.145 163.225);
+}
+.pdf-doc {
+  background: #ffffff;
+  color: var(--foreground);
+  padding: 4px 8px;
+  font-family: Georgia, "Times New Roman", "Songti SC", serif;
+  box-sizing: border-box;
+}
+.pdf-doc-brand {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.pdf-doc-title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 6px;
+  color: var(--foreground);
+}
+.pdf-doc-meta {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.pdf-doc-body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--foreground);
+}
+.pdf-doc-lead {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 8px;
+  color: var(--foreground);
+}
+.pdf-doc-section-title {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 16px 0 6px;
+  color: var(--foreground);
+}
+.pdf-doc-subhead {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 22px 0 8px;
+  color: var(--foreground);
+}
+.pdf-doc-kp {
+  margin: 0 0 6px;
+  line-height: 1.7;
+  color: var(--foreground);
+}

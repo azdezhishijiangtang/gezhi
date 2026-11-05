@@ -1,0 +1,85 @@
+name: 部署数理答疑平台
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: highschool/package-lock.json
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      # ── 高中区（问渠）──────────────────────────────
+      # base 已内置相对路径（./），挂任意子路径均可运行
+      - name: 构建高中区（问渠）
+        working-directory: highschool
+        run: |
+          npm ci
+          npm run build
+
+      # ── 大学区（Principia）────────────────────────
+      # BrowserRouter + basename=BASE_URL，构建时显式传 base
+      - name: 构建大学区（Principia）
+        working-directory: university
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec tsc -b
+          pnpm exec vite build --base=/shuli-qa/university/
+
+      # ── 拼装站点 ─────────────────────────────────
+      # /            → 门户（选择高中区 / 大学区）
+      # /highschool/ → 问渠
+      # /university/ → Principia
+      - name: 拼装站点
+        run: |
+          mkdir -p _site
+          cp -r portal/. _site/
+          cp -r highschool/dist _site/highschool
+          cp -r university/dist _site/university
+          # SPA 回退：GitHub Pages 404 只认站点根的 404.html。
+          # 用大学区入口页兜底（资源为绝对路径，可正常加载），
+          # 并在开头注入分流脚本：非大学区路径弹回门户。
+          python3 - <<'EOF'
+          index = open('university/dist/index.html', encoding='utf-8').read()
+          guard = "<script>if(location.pathname.indexOf('/shuli-qa/university/')!==0)location.replace('/shuli-qa/');</script>"
+          assert '<head>' in index
+          index = index.replace('<head>', '<head>' + guard, 1)
+          open('_site/404.html', 'w', encoding='utf-8').write(index)
+          print('404 fallback written')
+          EOF
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
