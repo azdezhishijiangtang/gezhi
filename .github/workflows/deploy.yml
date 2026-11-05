@@ -45,7 +45,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm exec tsc -b
-          pnpm exec vite build --base=/shuli-qa/university/
+          pnpm exec vite build --base=/gezhi/university/
 
       # ── 拼装站点 ─────────────────────────────────
       # /            → 门户（选择高中区 / 大学区）
@@ -62,7 +62,7 @@ jobs:
           # 并在开头注入分流脚本：非大学区路径弹回门户。
           python3 - <<'EOF'
           index = open('university/dist/index.html', encoding='utf-8').read()
-          guard = "<script>if(location.pathname.indexOf('/shuli-qa/university/')!==0)location.replace('/shuli-qa/');</script>"
+          guard = "<script>if(location.pathname.indexOf('/gezhi/university/')!==0)location.replace('/gezhi/');</script>"
           assert '<head>' in index
           index = index.replace('<head>', '<head>' + guard, 1)
           open('_site/404.html', 'w', encoding='utf-8').write(index)

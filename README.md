@@ -8,7 +8,7 @@
 | 大学区 | Principia · 大学数学物理本科知识解答平台 | `/university/` | `Principia`（frontend/） | Vite + React 19 + TS（pnpm） |
 | 门厅 | 分区选择页 | `/` | — | 纯静态单文件 |
 
-线上地址：`https://azdezhishijiangtang.github.io/shuli-qa/`
+线上地址：`https://azdezhishijiangtang.github.io/gezhi/`
 
 ## 设计原则
 
@@ -23,7 +23,7 @@
 `push` 到 `main` 或手动 `workflow_dispatch` 触发 `.github/workflows/deploy.yml`：
 
 1. 构建高中区（`npm ci && npm run build`，base 为相对路径）；
-2. 构建大学区（`pnpm exec tsc -b && pnpm exec vite build --base=/shuli-qa/university/`）；
+2. 构建大学区（`pnpm exec tsc -b && pnpm exec vite build --base=/gezhi/university/`）；
 3. 拼装站点：`portal/` → 根目录，两应用产物分别置于 `highschool/`、`university/`；
 4. 站点根放置 404 兜底页（大学区入口 + 路径分流脚本）：大学区为 BrowserRouter 多级路由，刷新深链时由其兜底恢复；非大学区路径弹回门厅。
 
@@ -37,4 +37,4 @@ cd highschool && npm install && npm run dev
 cd university && pnpm install && pnpm dev
 ```
 
-> 注意：大学区本地 dev 的 base 为 `/`，而线上为 `/shuli-qa/university/`，两者均由 `BrowserRouter basename={import.meta.env.BASE_URL}` 自动适配。
+> 注意：大学区本地 dev 的 base 为 `/`，而线上为 `/gezhi/university/`，两者均由 `BrowserRouter basename={import.meta.env.BASE_URL}` 自动适配。
