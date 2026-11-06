@@ -10,7 +10,6 @@ import Footer from "@/components/Footer";
 import CommandSearch from "@/components/CommandSearch";
 import AskAiWidget from "@/components/AskAiWidget";
 import SelectionImageLauncher from "@/components/SelectionImageLauncher";
-import { AuthProvider } from "@/lib/AuthContext";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { SubjectProvider } from "@/lib/SubjectContext";
 import { LocaleProvider } from "@/i18n/LocaleContext";
@@ -23,12 +22,7 @@ import Formulas from "./pages/Formulas";
 import Knowledge from "./pages/Knowledge";
 import Tutor from "./pages/Tutor";
 import Study from "./pages/Study";
-import Login from "./pages/Login";
-import Profile from "./pages/Profile";
-import DevMode from "./pages/DevMode";
 import Mistakes from "./pages/Mistakes";
-// 论坛功能已关闭：Forum 组件不再挂载路由
-// import Forum from "./pages/Forum";
 import About from "./pages/About";
 import Donate from "./pages/Donate";
 import Custom from "./pages/Custom";
@@ -81,11 +75,7 @@ const Layout = () => {
           <Route path="/knowledge" data-genie-key="Knowledge" data-genie-title="Knowledge Base" element={<PageTransition transition="slide-up"><Knowledge /></PageTransition>} />
           <Route path="/tutor" data-genie-key="Tutor" data-genie-title="AI Tutor" element={<PageTransition transition="fade"><Tutor /></PageTransition>} />
           <Route path="/study" data-genie-key="Study" data-genie-title="Study Archive" element={<PageTransition transition="fade"><Study /></PageTransition>} />
-          <Route path="/login" data-genie-key="Login" data-genie-title="Login" element={<PageTransition transition="fade"><Login /></PageTransition>} />
-          <Route path="/profile" data-genie-key="Profile" data-genie-title="Profile" element={<PageTransition transition="fade"><Profile /></PageTransition>} />
           <Route path="/mistakes" data-genie-key="Mistakes" data-genie-title="Mistake Book" element={<PageTransition transition="fade"><Mistakes /></PageTransition>} />
-          {/* 论坛功能已关闭：移除 /forum 路由（页面组件保留，随时可恢复） */}
-          <Route path="/dev" data-genie-key="DevMode" data-genie-title="Developer Mode" element={<PageTransition transition="fade"><DevMode /></PageTransition>} />
           <Route path="/about" data-genie-key="About" data-genie-title="About Developer" element={<PageTransition transition="fade"><About /></PageTransition>} />
           <Route path="/donate" data-genie-key="Donate" data-genie-title="Donate" element={<PageTransition transition="fade"><Donate /></PageTransition>} />
           <Route path="/custom" data-genie-key="Custom" data-genie-title="Custom Feature" element={<PageTransition transition="fade"><Custom /></PageTransition>} />
@@ -133,13 +123,11 @@ function App() {
           <Toaster />
           {/* basename 取构建 base：平台部署为 '/'，GitHub Pages 等子路径部署为 '/principia/' */}
           <BrowserRouter basename={import.meta.env.BASE_URL}>
-            <AuthProvider>
-              <SubjectProvider>
-                <LocaleProvider>
-                  <Layout />
-                </LocaleProvider>
-              </SubjectProvider>
-            </AuthProvider>
+            <SubjectProvider>
+              <LocaleProvider>
+                <Layout />
+              </LocaleProvider>
+            </SubjectProvider>
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>

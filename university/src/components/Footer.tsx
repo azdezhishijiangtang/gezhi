@@ -1,15 +1,12 @@
 import { Link } from 'react-router-dom';
-import { KeyRound, HandCoins, Users, Wrench } from 'lucide-react';
+import { HandCoins, Users, Wrench } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import { courseCategories } from '@/data/courses';
 import { useCourses, useTopics } from '@/i18n/data';
 import { useT } from '@/i18n/LocaleContext';
-import { isDevUser, useAuth } from '@/lib/AuthContext';
 
 const Footer = () => {
   const t = useT();
-  const { user } = useAuth();
-  const devAllowed = isDevUser(user);
   const courses = useCourses();
   const topics = useTopics();
 
@@ -116,17 +113,6 @@ const Footer = () => {
                   {t('功能定制共建')}
                 </Link>
               </li>
-              {devAllowed && (
-                <li>
-                  <Link
-                    to="/dev"
-                    className="flex items-center gap-1.5 hover:text-foreground transition-colors duration-[var(--duration-fast)]"
-                  >
-                    <KeyRound className="h-4 w-4" />
-                    {t('开发者模式')}
-                  </Link>
-                </li>
-              )}
             </ul>
             <p className="mt-4 text-xs text-muted-foreground leading-relaxed">
               {t('Principia 持续更新中——新内容与功能会不定期上线。')}

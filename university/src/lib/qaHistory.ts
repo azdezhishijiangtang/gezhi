@@ -1,13 +1,11 @@
 /**
- * 答疑记忆：按账户把每次 AI 答疑的问题与回答保存到 localStorage。
- * 演示登录体系下按用户 id 隔离；未登录时归入 guest 桶。
+ * 答疑记忆：把每次 AI 答疑的问题与回答保存到 localStorage。
+ * 本站是纯前端应用，不设账号，所有记录都属于这台设备。
  */
 import { useMemo, useSyncExternalStore } from 'react';
 
 export interface QaEntry {
   id: string;
-  /** 归属用户（user.id 或 'guest'） */
-  userId: string;
   /** 提问时间戳 */
   ts: number;
   question: string;
@@ -36,12 +34,19 @@ export interface QaSource {
 const STORAGE_KEY = 'mathlens-qa-history';
 const MAX_ENTRIES = 500;
 
+/** 兼容旧备份：剥离历史版本遗留的 userId 字段 */
+const stripLegacy = <T>(entry: T): T => {
+  const clean: Record<string, unknown> = { ...(entry as Record<string, unknown>) };
+  delete clean.userId;
+  return clean as T;
+};
+
 const readAll = (): QaEntry[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as QaEntry[]) : [];
+    return Array.isArray(parsed) ? (parsed as QaEntry[]).map(stripLegacy) : [];
   } catch {
     return [];
   }
@@ -74,11 +79,9 @@ export const subscribeQa = (listener: () => void): (() => void) => {
   return () => listeners.delete(listener);
 };
 
-/** 读取某用户的答疑记录（最新在前） */
-export const loadQaHistory = (userId: string): QaEntry[] =>
-  readAll()
-    .filter((e) => e.userId === userId)
-    .sort((a, b) => b.ts - a.ts);
+/** 读取全部答疑记录（最新在前） */
+export const loadQaHistory = (): QaEntry[] =>
+  readAll().sort((a, b) => b.ts - a.ts);
 
 /** 追加一条答疑记录 */
 export const addQaEntry = (entry: Omit<QaEntry, 'id' | 'ts'>): QaEntry => {
@@ -96,9 +99,9 @@ export const deleteQaEntry = (id: string): void => {
   writeAll(readAll().filter((e) => e.id !== id));
 };
 
-/** 清空某用户的全部记录 */
-export const clearQaHistory = (userId: string): void => {
-  writeAll(readAll().filter((e) => e.userId !== userId));
+/** 清空全部记录 */
+export const clearQaHistory = (): void => {
+  writeAll([]);
 };
 
 /**
@@ -108,9 +111,11 @@ export const clearQaHistory = (userId: string): void => {
 export const mergeQaEntries = (entries: QaEntry[]): number => {
   const existing = readAll();
   const ids = new Set(existing.map((e) => e.id));
-  const incoming = entries.filter(
-    (e) => e && typeof e.id === 'string' && typeof e.ts === 'number' && !ids.has(e.id),
-  );
+  const incoming = entries
+    .filter(
+      (e) => e && typeof e.id === 'string' && typeof e.ts === 'number' && !ids.has(e.id),
+    )
+    .map(stripLegacy);
   if (incoming.length === 0) return 0;
   writeAll([...existing, ...incoming]);
   return incoming.length;
@@ -144,11 +149,11 @@ export const computeQaStats = (entries: QaEntry[]): QaStats => {
   };
 };
 
-/** React Hook：订阅某用户的答疑记录（JSON 快照相等判断，避免多余渲染） */
-export const useQaEntries = (userId: string): QaEntry[] => {
+/** React Hook：订阅答疑记录（JSON 快照相等判断，避免多余渲染） */
+export const useQaEntries = (): QaEntry[] => {
   const snapshot = useSyncExternalStore(
     subscribeQa,
-    () => JSON.stringify(loadQaHistory(userId)),
+    () => JSON.stringify(loadQaHistory()),
     () => '[]',
   );
   return useMemo(() => JSON.parse(snapshot) as QaEntry[], [snapshot]);

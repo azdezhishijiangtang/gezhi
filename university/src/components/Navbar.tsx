@@ -1,18 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Search, LogIn, LogOut, User, BookOpen, Sun, Moon } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, Search, Sun, Moon } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth, userContact } from '@/lib/AuthContext';
 import { useTheme } from '@/lib/ThemeContext';
 import { useSubject } from '@/lib/SubjectContext';
 import { useLocale } from '@/i18n/LocaleContext';
@@ -27,6 +17,7 @@ const navLinks: { to: string; label: string; xlOnly?: boolean }[] = [
   { to: '/problems', label: '例题广场' },
   { to: '/formulas', label: '公式速查' },
   { to: '/mistakes', label: '错题本', xlOnly: true },
+  { to: '/study', label: '学习档案', xlOnly: true },
   { to: '/about', label: '关于', xlOnly: true },
 ];
 
@@ -39,8 +30,6 @@ const Navbar = ({ onOpenSearch }: NavbarProps) => {
   const drawerRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, signOut } = useAuth();
   const { theme, toggle: toggleTheme, themeLabel } = useTheme();
   const { subject, setSubject } = useSubject();
   const { lang, setLang, t } = useLocale();
@@ -65,12 +54,6 @@ const Navbar = ({ onOpenSearch }: NavbarProps) => {
       toggleEl?.focus();
     };
   }, [mobileOpen]);
-
-  const handleSignOut = () => {
-    signOut();
-    setMobileOpen(false);
-    navigate('/');
-  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -173,62 +156,6 @@ const Navbar = ({ onOpenSearch }: NavbarProps) => {
             )}
           </Button>
 
-          {/* 登录状态区 */}
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full"
-                  aria-label={`${t('用户菜单')}：${user.name}`}
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatarUrl} alt={user.name} />
-                    <AvatarFallback className="bg-info/10 text-info text-xs font-semibold">
-                      {user.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-muted-foreground font-normal truncate">
-                    {userContact(user)}
-                  </p>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="cursor-pointer gap-2">
-                    <User className="h-4 w-4" />
-                    {t('个人中心')}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/study" className="cursor-pointer gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    {t('学习档案')}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="cursor-pointer gap-2 text-destructive focus:text-destructive"
-                >
-                  <LogOut className="h-4 w-4" />
-                  {t('退出登录')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button asChild size="sm" className="gap-1.5 bg-info text-info-foreground hover:bg-info/90">
-              <Link to="/login">
-                <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">{t('登录')}</span>
-              </Link>
-            </Button>
-          )}
-
           {/* 移动端菜单按钮 */}
           <Button
             variant="ghost"
@@ -266,38 +193,6 @@ const Navbar = ({ onOpenSearch }: NavbarProps) => {
                 {t(link.label)}
               </Link>
             ))}
-            {user ? (
-              <>
-                <Link
-                  to="/study"
-                  onClick={() => setMobileOpen(false)}
-                  className="py-3 text-sm font-medium border-b border-border text-muted-foreground"
-                >
-                  {t('学习档案')}
-                </Link>
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileOpen(false)}
-                  className="py-3 text-sm font-medium border-b border-border text-muted-foreground"
-                >
-                  {t('个人中心')}
-                </Link>
-                <button
-                  onClick={handleSignOut}
-                  className="py-3 text-sm font-medium text-left text-destructive"
-                >
-                  {t('退出登录')}
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/login"
-                onClick={() => setMobileOpen(false)}
-                className="py-3 text-sm font-medium text-info"
-              >
-                {t('登录')}
-              </Link>
-            )}
           </div>
         </nav>
       )}

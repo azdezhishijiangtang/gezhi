@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { FadeIn } from '@/components/MotionPrimitives';
 import MathText from '@/components/MathText';
-import { useAuth } from '@/lib/AuthContext';
 import { useSubject } from '@/lib/SubjectContext';
 import { useCourses } from '@/i18n/data';
 import { useLocale, useT } from '@/i18n/LocaleContext';
@@ -27,21 +26,19 @@ import {
 const Mistakes = () => {
   const t = useT();
   const { tpl } = useLocale();
-  const { user } = useAuth();
   const { subject } = useSubject();
   const allCourses = useCourses();
   const subjectCourseList = useMemo(
     () => allCourses.filter((c) => (c.subject ?? 'math') === subject),
     [allCourses, subject],
   );
-  const userId = user?.id ?? 'guest';
   const [activeCourse, setActiveCourse] = useState('all');
   // 订阅错题数据变更（本地写操作/跨标签页），counts 随数据实时刷新
   const [countsVersion, setCountsVersion] = useState(0);
   useEffect(() => subscribeMistakes(() => setCountsVersion((v) => v + 1)), []);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- countsVersion 订阅错题数据变更，用来强制重算统计
-  const counts = useMemo(() => countMistakesByCourse(userId), [userId, countsVersion]);
-  const mistakes = useMistakes(userId, activeCourse);
+  const counts = useMemo(() => countMistakesByCourse(), [countsVersion]);
+  const mistakes = useMistakes(activeCourse);
 
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
@@ -71,7 +68,6 @@ const Mistakes = () => {
       return;
     }
     const res = addMistake({
-      userId,
       courseId,
       title: title.trim(),
       content: content.trim(),

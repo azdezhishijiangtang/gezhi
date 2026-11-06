@@ -2,7 +2,7 @@
  * 全局悬浮"问 AI"：右下角常驻入口，任何页面都能随时提问。
  * - 自动识别当前是否处于知识点页（/topics/:topicId），携带该知识点上下文
  * - 复用 useTutorChat：与答疑台共享同一套对话逻辑（含文档知识库检索）
- * - 在 /tutor 与 /login 页自动隐藏
+ * - 在 /tutor 页自动隐藏
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -22,14 +22,13 @@ import {
 import { Button } from '@/components/ui/button';
 import MathText from '@/components/MathText';
 import ThinkingPanel from '@/components/ThinkingPanel';
-import { useAuth } from '@/lib/AuthContext';
 import { InlineMathText } from '@/components/MathText';
 import { readAiConfig, THINKING_LABELS } from '@/lib/ai';
 import { useTutorChat, QUICK_FOLLOWUPS } from '@/lib/useTutorChat';
 import { useUserDocs } from '@/lib/docLibrary';
 import { useT } from '@/i18n/LocaleContext';
 
-const HIDDEN_PATHS = ['/tutor', '/login'];
+const HIDDEN_PATHS = ['/tutor'];
 
 /** 从路由推导当前知识点上下文 */
 const useRouteTopicId = (): string | null => {
@@ -41,17 +40,15 @@ const useRouteTopicId = (): string | null => {
 const AskAiWidget = () => {
   const t = useT();
   const location = useLocation();
-  const { user } = useAuth();
   const topicId = useRouteTopicId();
   const [open, setOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const docs = useUserDocs(user?.id ?? 'guest');
+  const docs = useUserDocs();
   const enabledDocCount = docs.filter((d) => d.enabled).length;
 
   const chat = useTutorChat({
-    userId: user?.id ?? 'guest',
     topicId,
     onBeforeSend: () => inputRef.current?.focus(),
   });

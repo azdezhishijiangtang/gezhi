@@ -1,4 +1,4 @@
-/** About / Custom / Donate / Forum / Login 页面可见文案英文映射 */
+/** About / Custom / Donate 页面可见文案英文映射 */
 const dict: Record<string, string> = {
   // ── About ──
   '关于开发者': 'About the Developer',
@@ -87,78 +87,6 @@ const dict: Record<string, string> = {
   '去 B 站关注「阿z的知识讲堂」，免费的关注同样是最大的鼓励。':
     'Follow “A-z’s Knowledge Classroom” on Bilibili—a free follow is just as encouraging.',
 
-  // ── Forum ──
-  '访客': 'Guest',
-  '附件读取失败': 'Failed to read the attachment',
-  '请填写标题与正文': 'Please fill in both the title and the body',
-  '发布成功': 'Posted',
-  '回复内容不能为空': 'Reply cannot be empty',
-  '回复成功': 'Reply posted',
-  '学习论坛': 'Study Forum',
-  '交流区': 'Discussion',
-  '分课程讨论 + 综合讨论区：分享对各门课的理解、学习方法与学到的知识，支持 LaTeX 公式与文档/图片附件。':
-    "Per-course boards plus a general area: share your understanding of each course, your study methods, and what you've learned. LaTeX formulas and document/image attachments are supported.",
-  '版块': 'Boards',
-  '综合讨论区': 'General Discussion',
-  '未知分区': 'Unknown board',
-  '发帖': 'New Post',
-  '标题 *': 'Title *',
-  '一句话概括你的分享/提问': 'Sum up your post or question in one line',
-  '正文 *（支持 Markdown 与 LaTeX 公式）': 'Body * (Markdown and LaTeX supported)',
-  '分享你的学习方法、对某个知识点的理解，或提出问题……\n\n例如：我这样理解 ':
-    'Share your study methods, your take on a concept, or ask a question…\n\nFor example, here is how I understand the ',
-  ' 语言……': ' notation…',
-  '添加附件（≤2MB/个）': 'Add attachments (≤2MB each)',
-  '发布': 'Post',
-  '返回列表': 'Back to list',
-  '已删除': 'Deleted',
-  '删除本帖': 'Delete this post',
-  '写下你的回复……': 'Write your reply…',
-  '回复': 'Reply',
-  '本版块还没有帖子，点右上角「发帖」分享你的第一篇理解吧。':
-    'No posts in this board yet. Hit “New Post” in the top right to share your first insight.',
-  '移除附件 {name}': 'Remove attachment {name}',
-  '{n} 条回复': '{n} replies',
-  '{n} 回复': '{n} replies',
-  '{n} 个附件': '{n} attachments',
-
-  // ── Login ──
-  '两次输入的密码不一致': 'The two passwords do not match',
-  '注册失败，请重试': 'Sign-up failed, please try again',
-  '账号或密码错误': 'Incorrect account or password',
-  '手机号注册，': 'Sign up with your phone number,',
-  '开启你的数学学习之旅': 'and start your math learning journey',
-  '一个手机号一个账号，设置专属用户名与密码；登录后保存学习进度、收藏知识点，在任意页面继续你的推导。':
-    'One phone number, one account. Choose your own username and password; once signed in, your progress is saved, topics can be bookmarked, and you can pick up your derivations on any page.',
-  '欧拉恒等式 —— 数学中最美的公式之一': "Euler's identity — one of the most beautiful formulas in mathematics",
-  '欢迎来到 Principia': 'Welcome to Principia',
-  '手机号注册：一个手机号一个账号，用户名全站唯一': 'Phone sign-up: one number per account, usernames unique site-wide',
-  '输入手机号（或用户名）与密码登录': 'Enter your phone number (or username) and password to sign in',
-  '注册新账号': 'Create account',
-  '已有账号登录': 'Sign in',
-  '手机号': 'Phone number',
-  '11 位手机号，如 13812345678': '11-digit phone number, e.g. 13812345678',
-  '用户名': 'Username',
-  '（全站唯一，2-16 位）': '(unique site-wide, 2–16 characters)',
-  '中文、字母、数字或下划线': 'Chinese characters, letters, numbers or underscore',
-  '设置密码': 'Password',
-  '6-32 位': '6–32 characters',
-  '确认密码': 'Confirm password',
-  '再输入一次': 'Enter it again',
-  '正在注册…': 'Signing up…',
-  '注册并登录': 'Sign up & sign in',
-  '已有账号？': 'Already have an account?',
-  '直接登录': 'Sign in',
-  '手机号或用户名': 'Phone number or username',
-  '注册时的手机号或用户名': 'The phone number or username you signed up with',
-  '密码': 'Password',
-  '注册时设置的密码': 'The password you set at sign-up',
-  '正在登录…': 'Signing in…',
-  '登录': 'Sign in',
-  '还没有账号？': "Don't have an account?",
-  '用手机号注册': 'Sign up with your phone',
-  '返回首页': 'Back to home',
-  '你已登录，正在跳转…': "You're signed in, redirecting…",
 };
 
 export default dict;

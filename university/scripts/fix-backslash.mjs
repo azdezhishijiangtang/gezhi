@@ -81,7 +81,6 @@ function fixLatex(code) {
 
 let totalChanged = 0;
 for (const file of walk(ROOT)) {
-  if (file.endsWith('seedAccounts.ts')) continue;
   const src = readFileSync(file, 'utf8');
   const lines = src.split('\n');
   let changed = 0;

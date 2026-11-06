@@ -17,7 +17,6 @@ const dict: Record<string, string> = {
   '关于开发者': 'About the Developer',
   '打赏开发者': 'Support the Developer',
   '功能定制共建': 'Custom Feature Co-building',
-  '开发者模式': 'Developer Mode',
   '大学数学物理本科知识解答平台': 'Undergraduate Math & Physics Q&A Platform',
   '公式由 KaTeX 渲染 · 内容仅供学习交流': 'Formulas rendered by KaTeX · For study and discussion only',
 

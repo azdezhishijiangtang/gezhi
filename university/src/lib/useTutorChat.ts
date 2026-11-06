@@ -92,8 +92,6 @@ export interface ChatImage {
 export type TutorStatus = 'idle' | 'searching' | 'generating';
 
 export interface UseTutorChatOptions {
-  /** 归属用户 id（或 'guest'） */
-  userId: string;
   /** 知识点上下文 id（可选） */
   topicId?: string | null;
   /** 正在阅读的小节标题（可选，来自 TopicDetail 的"问 AI 这一节"） */
@@ -114,7 +112,7 @@ export const QUICK_FOLLOWUPS = [
 ];
 
 export const useTutorChat = (options: UseTutorChatOptions) => {
-  const { userId, topicId = null, section = null, useDocs = true } = options;
+  const { topicId = null, section = null, useDocs = true } = options;
 
   const [messages, setMessages] = useState<TutorMessage[]>([]);
   const [input, setInput] = useState('');
@@ -212,7 +210,7 @@ export const useTutorChat = (options: UseTutorChatOptions) => {
           const ragBoostOn = readRagBoost();
           const hardQ = intensive || classifyDifficulty(trimmed) === 'hard';
           const topK = ragBoostOn && hardQ ? RAG_BOOST_TOPK : 4;
-          const hits = await retrieveChunks(userId, trimmed, topK);
+          const hits = await retrieveChunks(trimmed, topK);
           if (hits.length > 0) {
             sources = hits.map((h) => ({
               docId: h.chunk.docId,
@@ -561,7 +559,6 @@ export const useTutorChat = (options: UseTutorChatOptions) => {
       }
 
       addQaEntry({
-        userId,
         question: trimmed,
         answer: acc,
         courseId: topic?.courseId,
@@ -577,7 +574,7 @@ export const useTutorChat = (options: UseTutorChatOptions) => {
       setStatus('idle');
       abortRef.current = null;
     },
-    [streaming, messages, topic, course, userId, useDocs, options, images, lastModel, section],
+    [streaming, messages, topic, course, useDocs, options, images, lastModel, section],
   );
 
   const stop = useCallback(() => abortRef.current?.abort(), []);

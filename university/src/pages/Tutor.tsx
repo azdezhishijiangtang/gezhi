@@ -22,7 +22,6 @@ import { FadeIn } from '@/components/MotionPrimitives';
 import ThinkingPanel from '@/components/ThinkingPanel';
 import AiSettingsCard from '@/components/AiSettingsCard';
 import DocLibraryPanel from '@/components/DocLibraryPanel';
-import { useAuth } from '@/lib/AuthContext';
 import { readAiConfig, saveAiConfig, THINKING_LABELS } from '@/lib/ai';
 import {
   getCatalog,
@@ -48,8 +47,6 @@ const Tutor = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const t = useT();
   const { tpl } = useLocale();
-  const { user } = useAuth();
-  const userId = user?.id ?? 'guest';
   const topicId = searchParams.get('topic');
   const section = searchParams.get('section');
   const topic = useTopic(topicId ?? undefined);
@@ -62,12 +59,12 @@ const Tutor = () => {
   // 模型目录（随服务商自动更新）：缓存新鲜秒回，过期后台刷新，失败回退内置列表
   const [catalog, setCatalog] = useState<CatalogEntry>({ models: [], source: 'builtin', fetchedAt: 0 });
   const [catalogLoading, setCatalogLoading] = useState(false);
-  const docs = useUserDocs(userId);
+  const docs = useUserDocs();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const attachRef = useRef<HTMLInputElement>(null);
 
-  const chat = useTutorChat({ userId, topicId, section, useDocs });
+  const chat = useTutorChat({ topicId, section, useDocs });
   const {
     messages,
     input,
@@ -600,7 +597,7 @@ const Tutor = () => {
             <div className="border border-border bg-card p-5 md:col-span-2">
               <h3 className="font-serif text-base font-semibold mb-3">{t('学习档案')}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                {t('答疑历史按账户沉淀，AI 可帮你总结薄弱点并生成个性化练习题。')}
+                {t('答疑历史保存在本机，AI 可帮你总结薄弱点并生成个性化练习题。')}
               </p>
               <Button asChild variant="outline" size="sm" className="w-full gap-1.5">
                 <Link to="/study">
@@ -694,7 +691,7 @@ const Tutor = () => {
             </div>
           )}
 
-          <DocLibraryPanel userId={userId} />
+          <DocLibraryPanel />
         </aside>
       </div>
     </div>

@@ -16,7 +16,6 @@ import { BookX,
   FileDown,
   Upload,
   Archive,
-  CloudUpload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,7 +38,6 @@ import { addMistake } from '@/lib/mistakeBook';
 import { toast } from 'sonner';
 import { FadeIn } from '@/components/MotionPrimitives';
 import CourseIcon from '@/components/CourseIcon';
-import { useAuth } from '@/lib/AuthContext';
 import { useSubject } from '@/lib/SubjectContext';
 import {
   readAiConfig,
@@ -83,15 +81,6 @@ import {
   importArchive,
   archiveEntryCount,
 } from '@/lib/archiveSync';
-import {
-  loadPat,
-  savePat,
-  loadGistId,
-  saveGistId,
-  extractGistId,
-  uploadArchive,
-  fetchArchive,
-} from '@/lib/gistSync';
 
 const formatDate = (ts: number) => {
   const d = new Date(ts);
@@ -142,7 +131,6 @@ const parseGeneratedProblems = (raw: string): GeneratedProblem[] => {
 const Study = () => {
   const t = useT();
   const { tpl } = useLocale();
-  const { user } = useAuth();
   const { subject } = useSubject();
   const courses = useCourses();
   const subjectCourseList = useMemo(
@@ -151,8 +139,7 @@ const Study = () => {
   );
   const courseById = (id: string) => courses.find((c) => c.id === id);
   const freeLabel = t('自由提问');
-  const userId = user?.id ?? 'guest';
-  const entries = useQaEntries(userId);
+  const entries = useQaEntries();
   const stats = useMemo(() => computeQaStats(entries), [entries]);
 
   // 记录筛选
@@ -179,23 +166,16 @@ const Study = () => {
   // 历史总结留存
   const [archive, setArchive] = useState<StudySummary[]>([]);
   useEffect(() => {
-    const reload = () => setArchive(loadSummaries(userId));
+    const reload = () => setArchive(loadSummaries());
     reload();
     return subscribeSummaries(reload);
-  }, [userId]);
+  }, []);
 
   // 跨设备档案同步：导出为文件、在另一台设备粘贴导入
   const [importOpen, setImportOpen] = useState(false);
   const [importCode, setImportCode] = useState('');
   const [importMsg, setImportMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
-  // 云端同步（GitHub Gist）：上传得同步 ID，任何设备凭 ID 拉取最新档案
-  const [cloudOpen, setCloudOpen] = useState(false);
-  const [cloudPat, setCloudPat] = useState(loadPat());
-  const [cloudGistId, setCloudGistId] = useState(loadGistId());
-  const [cloudPullId, setCloudPullId] = useState('');
-  const [cloudBusy, setCloudBusy] = useState<'upload' | 'pull' | null>(null);
-  const [cloudMsg, setCloudMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   // 已配置的存档列表（供下拉选择模型）
   const isSet = (p: AiProfile | null) =>
     Boolean(p && p.baseUrl && p.apiKey && p.model);
@@ -328,7 +308,6 @@ const Study = () => {
       // 留存：写入不同时间段的总结档案
       const record: StudySummary = {
         id: `sum-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        userId,
         createdAt: Date.now(),
         model: cfg.model,
         profileIndex: selectedProfile,
@@ -336,7 +315,7 @@ const Study = () => {
         content: final,
       };
       saveSummary(record);
-      setArchive(loadSummaries(userId));
+      setArchive(loadSummaries());
       setSummary(''); // 已存入档案，避免重复展示
     } catch (err) {
       setSummaryError(describeAiError(err));
@@ -398,10 +377,10 @@ const Study = () => {
    * 本站没有服务器，档案只在本机浏览器里，换设备必须靠这份文件搬过去。
    */
   const handleExportArchive = () => {
-    const payload = buildArchive(userId, { username: user?.username, phone: user?.phone });
+    const payload = buildArchive();
     const total = archiveEntryCount(payload);
     if (total === 0) {
-      toast.error(t('当前账号还没有可导出的档案'));
+      toast.error(t('当前还没有可导出的档案'));
       return;
     }
     const blob = new Blob([encodeArchive(payload)], { type: 'text/plain;charset=utf-8' });
@@ -424,9 +403,9 @@ const Study = () => {
       setImportMsg({ type: 'err', text: decoded.error });
       return;
     }
-    const res = importArchive(decoded.payload, userId);
+    const res = importArchive(decoded.payload);
     // 总结列表是手动 state，导入后要显式刷新；答疑与错题有订阅，会自动更新
-    setArchive(loadSummaries(userId));
+    setArchive(loadSummaries());
     const parts: string[] = [];
     if (res.summaries > 0) parts.push(tpl('总结 {n}', { n: res.summaries }));
     if (res.qa > 0) parts.push(tpl('答疑 {n}', { n: res.qa }));
@@ -438,70 +417,6 @@ const Study = () => {
     }
     if (res.error) setImportMsg({ type: 'err', text: res.error });
     setImportCode('');
-  };
-
-  /** 云端上传：把当前账号档案推到 GitHub Gist，得到/更新同步 ID */
-  const handleCloudUpload = async () => {
-    const pat = cloudPat.trim();
-    if (!pat) {
-      setCloudMsg({ type: 'err', text: t('请先粘贴 GitHub PAT（上方有生成指引）') });
-      return;
-    }
-    setCloudBusy('upload');
-    setCloudMsg(null);
-    try {
-      const payload = buildArchive(userId, { username: user?.username, phone: user?.phone });
-      const total = archiveEntryCount(payload);
-      if (total === 0) {
-        setCloudMsg({ type: 'err', text: t('当前账号还没有可上传的档案') });
-        return;
-      }
-      const id = await uploadArchive(payload, pat, cloudGistId.trim());
-      savePat(pat);
-      saveGistId(id);
-      setCloudGistId(id);
-      setCloudMsg({
-        type: 'ok',
-        text: tpl('上传成功（{n} 条）。同步 ID 已生成——在另一台设备把它粘进「从云端拉取」即可', { n: total }),
-      });
-    } catch (err) {
-      setCloudMsg({ type: 'err', text: err instanceof Error ? err.message : t('上传失败，请稍后再试') });
-    } finally {
-      setCloudBusy(null);
-    }
-  };
-
-  /** 云端拉取：凭同步 ID 取最新档案并合并导入（无需 PAT） */
-  const handleCloudPull = async () => {
-    const id = extractGistId(cloudPullId);
-    if (!id) {
-      setCloudMsg({ type: 'err', text: t('请先粘贴另一台设备生成的同步 ID（或 Gist 链接）') });
-      return;
-    }
-    setCloudBusy('pull');
-    setCloudMsg(null);
-    try {
-      const payload = await fetchArchive(id);
-      const res = importArchive(payload, userId);
-      setArchive(loadSummaries(userId));
-      const parts: string[] = [];
-      if (res.summaries > 0) parts.push(tpl('总结 {n}', { n: res.summaries }));
-      if (res.qa > 0) parts.push(tpl('答疑 {n}', { n: res.qa }));
-      if (res.mistakes > 0) parts.push(tpl('错题 {n}', { n: res.mistakes }));
-      setCloudMsg({
-        type: 'ok',
-        text: parts.length === 0
-          ? t('拉取完成：云端记录本机都已经有了，没有新增')
-          : tpl('拉取完成，新增 {list}', { list: parts.join('、') }),
-      });
-      if (res.error) setCloudMsg({ type: 'err', text: res.error });
-      saveGistId(id);
-      setCloudGistId(id);
-    } catch (err) {
-      setCloudMsg({ type: 'err', text: err instanceof Error ? err.message : t('拉取失败，请稍后再试') });
-    } finally {
-      setCloudBusy(null);
-    }
   };
 
   const toggleExport = (id: string) =>
@@ -577,20 +492,8 @@ const Study = () => {
         <p className="text-sm font-semibold text-info tracking-wide mb-2">STUDY ARCHIVE</p>
         <h1 className="font-serif text-3xl font-semibold">{t('学习档案')}</h1>
         <p className="mt-2 text-muted-foreground max-w-2xl leading-relaxed">
-          {user ? (
-            <>
-              {t('当前账户：')}<span className="text-foreground font-medium">{user.name}</span>
-              {user.email ? tpl('（{email}）', { email: user.email }) : ''}
-              {t('。所有 AI 答疑记录按账户沉淀于此。')}
-            </>
-          ) : (
-            <>
-              {t('当前为')}<span className="text-foreground font-medium">{t('游客模式')}</span>
-              {t('，记录保存在本机浏览器。')}
-              <Link to="/login" className="text-info hover:underline ml-1">{t('登录后')}</Link>
-              {t('按账户隔离保存。')}
-            </>
-          )}
+          {t('本站是纯前端应用，所有答疑记录只保存在这台设备的浏览器里，不设账号、不上传服务器。')}
+          {t('换设备或清理浏览器数据前，请用「导出全部档案」备份。')}
         </p>
       </FadeIn>
 
@@ -692,7 +595,7 @@ const Study = () => {
                   <button
                     onClick={() => {
                       if (window.confirm(t('确定清空全部答疑记录吗？此操作不可恢复。'))) {
-                        clearQaHistory(userId);
+                        clearQaHistory();
                       }
                     }}
                     className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors duration-[var(--duration-fast)]"
@@ -872,18 +775,6 @@ const Study = () => {
                 <div className="flex flex-wrap items-center gap-3">
                   {/* 跨设备搬运：本站没有服务器，档案只在本机，靠这几个入口搬 */}
                   <Button
-                    onClick={() => {
-                      setCloudMsg(null);
-                      setCloudOpen(true);
-                    }}
-                    size="sm"
-                    className="gap-1.5"
-                    title={t('上传到云端生成同步 ID；任何设备凭 ID 拉取最新档案')}
-                  >
-                    <CloudUpload className="h-4 w-4" />
-                    {t('云端同步')}
-                  </Button>
-                  <Button
                     onClick={handleExportArchive}
                     size="sm"
                     variant="outline"
@@ -922,8 +813,8 @@ const Study = () => {
                     <button
                       onClick={() => {
                         if (window.confirm(t('确定清空全部历史总结吗？此操作不可恢复。'))) {
-                          clearSummaries(userId);
-                          setArchive(loadSummaries(userId));
+                          clearSummaries();
+                          setArchive(loadSummaries());
                           // 同步重置导出勾选，避免残留已删除总结的 id 导致计数不符
                           setExportSel(new Set());
                         }
@@ -956,7 +847,7 @@ const Study = () => {
                         <button
                           onClick={() => {
                             deleteSummary(s.id);
-                            setArchive(loadSummaries(userId));
+                            setArchive(loadSummaries());
                           }}
                           className="ml-auto hover:text-destructive transition-colors duration-[var(--duration-fast)]"
                           aria-label={t('删除这份总结')}
@@ -1079,7 +970,6 @@ const Study = () => {
                             if (p.hint) parts.push(t('【提示】') + p.hint);
                             if (p.solution) parts.push(t('【解答】') + p.solution);
                             const res = addMistake({
-                              userId,
                               courseId: practiceCourse,
                               title: p.title,
                               content: parts.filter(Boolean).join('\n\n'),
@@ -1162,103 +1052,6 @@ const Study = () => {
         </div>
       </FadeIn>
       </div>
-
-      {/* ── 云端同步对话框（GitHub Gist）── */}
-      <Dialog open={cloudOpen} onOpenChange={setCloudOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CloudUpload className="h-5 w-5 text-info" />
-              {t('云端档案同步')}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              {t('把档案上传到你自己的 GitHub 私密 Gist：上传后得到一个「同步 ID」，数据更新后可反复上传（同步 ID 不变）；在另一台设备粘贴这个 ID 即可拉取最新档案并合并导入。同步 ID 只要有它就能读档，请像密码一样保管。')}
-            </p>
-
-            {/* 第一步：PAT 配置（只需一次，存在本机） */}
-            <div className="border border-border bg-background p-4 space-y-2">
-              <p className="text-sm font-medium">{tpl('第一步 · 配置 GitHub PAT（只需一次，当前{state}）', { state: cloudPat ? t('：已配置') : t('：未配置') })}</p>
-              <ol className="list-decimal list-inside text-xs text-muted-foreground space-y-1">
-                <li>
-                  {t('打开 ')}
-                  <a href="https://github.com/settings/tokens/new?scopes=gist&description=Principia%20Archive%20Sync" target="_blank" rel="noreferrer" className="text-info hover:underline">
-                    GitHub 生成 PAT 页面
-                  </a>
-                  {t('（需已登录 GitHub）')}
-                </li>
-                <li>{t('过期时间随便选，勾选 gist 权限，点底部 Generate token')}</li>
-                <li>{t('复制生成的 token（ghp_ 开头），粘贴到下面保存。token 只存在本机浏览器')}</li>
-              </ol>
-              <div className="flex gap-2 pt-1">
-                <input
-                  type="password"
-                  value={cloudPat}
-                  onChange={(e) => setCloudPat(e.target.value)}
-                  placeholder="ghp_…"
-                  className="flex-1 h-9 px-3 text-xs border border-border bg-background outline-none focus:border-info"
-                  autoComplete="off"
-                />
-                <Button variant="outline" size="sm" onClick={() => { savePat(cloudPat); toast.success(t('PAT 已保存到本机')); }}>
-                  {t('保存')}
-                </Button>
-              </div>
-            </div>
-
-            {/* 第二步：上传 → 得到同步 ID */}
-            <div className="border border-border bg-background p-4 space-y-2">
-              <p className="text-sm font-medium">{t('第二步 · 上传档案，得到同步 ID')}</p>
-              <Button onClick={handleCloudUpload} size="sm" disabled={cloudBusy !== null} className="gap-1.5">
-                {cloudBusy === 'upload' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
-                {cloudGistId ? t('更新云端档案') : t('上传到云端')}
-              </Button>
-              {cloudGistId && (
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <code className="px-2 py-1 text-[11px] bg-muted border border-border max-w-full break-all">{cloudGistId}</code>
-                  <button
-                    onClick={() => { navigator.clipboard?.writeText(cloudGistId); toast.success(t('同步 ID 已复制')); }}
-                    className="text-xs text-info hover:underline"
-                  >
-                    {t('复制同步 ID')}
-                  </button>
-                  <span className="text-xs text-muted-foreground">{t('· 发给另一台设备（微信文件传输助手即可）')}</span>
-                </div>
-              )}
-            </div>
-
-            {/* 第三步：另一台设备凭 ID 拉取 */}
-            <div className="border border-border bg-background p-4 space-y-2">
-              <p className="text-sm font-medium">{t('第三步 · 在新设备凭同步 ID 拉取')}</p>
-              <div className="flex gap-2">
-                <input
-                  value={cloudPullId}
-                  onChange={(e) => setCloudPullId(e.target.value)}
-                  placeholder={t('粘贴同步 ID 或 Gist 链接')}
-                  className="flex-1 h-9 px-3 text-xs border border-border bg-background outline-none focus:border-info"
-                  autoComplete="off"
-                />
-                <Button onClick={handleCloudPull} size="sm" disabled={cloudBusy !== null} className="gap-1.5">
-                  {cloudBusy === 'pull' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  {t('拉取并导入')}
-                </Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">{t('拉取按 id 去重合并，重复操作安全；导入的记录自动归属当前登录账号。')}</p>
-            </div>
-
-            {cloudMsg && (
-              <p className={cloudMsg.type === 'ok' ? 'text-xs text-info' : 'text-xs text-destructive'}>
-                {cloudMsg.text}
-              </p>
-            )}
-          </div>
-          <div className="mt-4 flex justify-end">
-            <Button variant="outline" onClick={() => setCloudOpen(false)}>
-              {t('关闭')}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* ── 导出 Word 对话框 ── */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>

@@ -1,16 +1,15 @@
 /** Study（学习档案）页面可见文案英文映射 */
 const dict: Record<string, string> = {
+  '本站是纯前端应用，所有答疑记录只保存在这台设备的浏览器里，不设账号、不上传服务器。':
+    'This is a pure frontend app. All Q&A records are stored only in this browser, with no accounts and no server uploads.',
+  '换设备或清理浏览器数据前，请用「导出全部档案」备份。':
+    'Before switching devices or clearing browser data, use "Export All Archives" to back up.',
   // ── 页头 ──
   '学习档案': 'Study Archive',
   '自由提问': 'Free question',
-  '当前账户：': 'Signed in as: ',
   '（{email}）': ' ({email})',
-  '。所有 AI 答疑记录按账户沉淀于此。': '. All AI Q&A records are archived here per account.',
   '当前为': 'You are currently in ',
-  '游客模式': 'guest mode',
   '，记录保存在本机浏览器。': '. Records are saved in this browser.',
-  '登录后': 'Sign in',
-  '按账户隔离保存。': ' to keep records separated by account.',
 
   // ── 统计卡片 ──
   '累计提问': 'Total questions',

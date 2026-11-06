@@ -9,7 +9,6 @@
  *  D. problems      —— 必填字段、topicId/courseId 引用、难度枚举、
  *                      题干/步骤/答案 KaTeX 渲染校验
  *  E. formulas      —— 组与条目 id 全站唯一、courseId 引用、latex KaTeX 渲染校验
- *  F. seedAccounts  —— 手机号/用户名格式与唯一性、哈希格式
  *
  * 用法：node scripts/validate-data.mjs
  * 退出码：0 = 全部通过；1 = 存在 ERROR；2 = 仅 WARN
@@ -48,7 +47,6 @@ try {
         export * from ${JSON.stringify(join(ROOT, 'src/data/topics.ts'))};
         export * from ${JSON.stringify(join(ROOT, 'src/data/problems.ts'))};
         export * from ${JSON.stringify(join(ROOT, 'src/data/formulas.ts'))};
-        export * from ${JSON.stringify(join(ROOT, 'src/data/seedAccounts.ts'))};
       `,
       loader: 'ts',
       resolveDir: ROOT,
@@ -65,7 +63,7 @@ try {
 }
 
 const data = await import(bundle);
-const { courses, courseCategories, topics, problems, formulaGroups, SEED_ACCOUNTS } = data;
+const { courses, courseCategories, topics, problems, formulaGroups } = data;
 
 console.log('═'.repeat(60));
 console.log('数据层全量校验');
@@ -284,27 +282,6 @@ function validateTextField(obj, where, label, field) {
     }
   }
   info.push(`formulas：${formulaGroups.length} 组 / ${formulaSeen.size} 条公式，全部通过 KaTeX 校验 ${latexChecked} 条`);
-}
-
-/* ───────── 7. seedAccounts ───────── */
-
-{
-  const PHONE_RE = /^1[3-9]\d{9}$/;
-  const USERNAME_RE = /^[\u4e00-\u9fa5A-Za-z0-9_]{2,16}$/;
-  const phones = new Set();
-  const usernames = new Set();
-  for (const a of SEED_ACCOUNTS) {
-    const where = `seedAccounts:${a.phone}`;
-    if (!PHONE_RE.test(a.phone)) err(where, '手机号格式非法');
-    if (phones.has(a.phone)) err(where, '手机号重复');
-    phones.add(a.phone);
-    if (!USERNAME_RE.test(a.username)) err(where, `用户名格式非法：${a.username}`);
-    if (usernames.has(a.username.toLowerCase())) err(where, '用户名重复');
-    usernames.add(a.username.toLowerCase());
-    if (!/^[0-9a-f]{64}$/.test(a.passwordHash)) err(where, 'passwordHash 不是 64 位 hex');
-    if (typeof a.createdAt !== 'number' || a.createdAt <= 0) err(where, 'createdAt 非法');
-  }
-  info.push(`seedAccounts：${SEED_ACCOUNTS.length} 个内置账号`);
 }
 
 /* ───────── 8. 汇总 ───────── */

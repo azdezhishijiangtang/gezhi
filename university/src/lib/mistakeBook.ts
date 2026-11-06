@@ -1,6 +1,7 @@
 /**
  * 错题本：按课程分集合，两种来源——AI 练习一键收录 / 手动录入（文字、代码、图片）。
  * 图片以 dataURL 存入 localStorage（单张 ≤1.5MB，最多 4 张）。
+ * 本站是纯前端应用，不设账号，所有记录都属于这台设备。
  */
 import { useMemo, useSyncExternalStore } from 'react';
 
@@ -11,7 +12,6 @@ export interface MistakeImage {
 
 export interface MistakeEntry {
   id: string;
-  userId: string;
   courseId: string;
   topicId?: string;
   title: string;
@@ -27,11 +27,18 @@ const STORAGE_KEY = 'mathlens-mistakes-v1';
 export const MAX_MISTAKE_IMAGES = 4;
 export const MAX_IMAGE_BYTES = 1.5 * 1024 * 1024;
 
+/** 兼容旧备份：剥离历史版本遗留的 userId 字段 */
+const stripLegacy = <T>(entry: T): T => {
+  const clean: Record<string, unknown> = { ...(entry as Record<string, unknown>) };
+  delete clean.userId;
+  return clean as T;
+};
+
 const readAll = (): MistakeEntry[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as MistakeEntry[]) : [];
+    return Array.isArray(parsed) ? (parsed as MistakeEntry[]).map(stripLegacy) : [];
   } catch {
     return [];
   }
@@ -83,22 +90,24 @@ export const deleteMistake = (id: string): void => {
 export const mergeMistakes = (entries: MistakeEntry[]): { added: number; ok: boolean; error?: string } => {
   const existing = readAll();
   const ids = new Set(existing.map((e) => e.id));
-  const incoming = entries.filter(
-    (e) => e && typeof e.id === 'string' && typeof e.createdAt === 'number' && !ids.has(e.id),
-  );
+  const incoming = entries
+    .filter(
+      (e) => e && typeof e.id === 'string' && typeof e.createdAt === 'number' && !ids.has(e.id),
+    )
+    .map(stripLegacy);
   if (incoming.length === 0) return { added: 0, ok: true };
   const res = writeAll([...existing, ...incoming]);
   return { added: incoming.length, ...res };
 };
 
-export const listMistakes = (userId: string, courseId?: string): MistakeEntry[] =>
+export const listMistakes = (courseId?: string): MistakeEntry[] =>
   readAll()
-    .filter((e) => e.userId === userId && (!courseId || courseId === 'all' || e.courseId === courseId))
+    .filter((e) => !courseId || courseId === 'all' || e.courseId === courseId)
     .sort((a, b) => b.createdAt - a.createdAt);
 
-export const countMistakesByCourse = (userId: string): Record<string, number> => {
+export const countMistakesByCourse = (): Record<string, number> => {
   const map: Record<string, number> = {};
-  for (const e of readAll()) if (e.userId === userId) map[e.courseId] = (map[e.courseId] ?? 0) + 1;
+  for (const e of readAll()) map[e.courseId] = (map[e.courseId] ?? 0) + 1;
   return map;
 };
 
@@ -110,11 +119,11 @@ export const subscribeMistakes = (l: () => void): (() => void) => {
   };
 };
 
-/** 订阅某用户（可选按课程）的错题列表 */
-export const useMistakes = (userId: string, courseId?: string): MistakeEntry[] => {
+/** 订阅（可选按课程）的错题列表 */
+export const useMistakes = (courseId?: string): MistakeEntry[] => {
   const snapshot = useSyncExternalStore(
     subscribeMistakes,
-    () => JSON.stringify(listMistakes(userId, courseId)),
+    () => JSON.stringify(listMistakes(courseId)),
     () => '[]',
   );
   return useMemo(() => JSON.parse(snapshot) as MistakeEntry[], [snapshot]);

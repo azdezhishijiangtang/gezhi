@@ -16,7 +16,6 @@
 
 - **学习档案隔离**：高中区存储键带 `wenqu-` 前缀，大学区带 `mathlens-` / `principia-` 前缀，天然互不干扰。
 - **旧数据零丢失**：合并前后站点同属 `azdezhishijiangtang.github.io` 域（同一 localStorage origin），老用户的历史档案在合并后的站点上原样可用。
-- **识图服务不受影响**：高中区拍照识题走 Cloudflare Worker（`zhihu-study-vision`），其 `ALLOWED_ORIGINS` 绑定主域，合并后照常工作。Worker 源码保留在 `highschool/cloudflare/`，改动会经 `.github/workflows/deploy-vision.yml` 触发重部署（需在新仓库配置 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets，未配置时该工作流自动跳过）。
 
 ## 部署
 

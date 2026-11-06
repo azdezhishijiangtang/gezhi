@@ -1,27 +1,20 @@
 /**
- * 学习档案跨设备同步。
+ * 学习档案跨设备搬运（导出 / 导入）。
  *
  * 本站是纯前端应用：学习总结 / 答疑历史 / 错题本都只存在浏览器 localStorage，
- * 没有任何服务器替用户保管，所以换设备登录同一账号看不到旧档案。
- * 这里提供「导出同步码 → 在另一台设备粘贴导入」的手动搬运方式。
+ * 没有任何服务器替用户保管。这里提供「导出同步码 → 在另一台设备粘贴导入」
+ * 或「导出文件 → 导入文件」的手动搬运方式。
  *
- * 导入时会把所有记录重新归属到当前登录账号：本机注册的账号 id 是随机生成的，
- * 同一手机号在两台设备上 id 不同，若沿用导出端的 id，导进来也查不到。
+ * 兼容旧版备份：解析时会忽略历史遗留的 account / userId 字段。
  */
 import { loadSummaries, saveSummary, type StudySummary } from '@/lib/summaryArchive';
 import { loadQaHistory, mergeQaEntries, type QaEntry } from '@/lib/qaHistory';
 import { listMistakes, mergeMistakes, type MistakeEntry } from '@/lib/mistakeBook';
 
-export interface ArchiveAccount {
-  username?: string;
-  phone?: string;
-}
-
 export interface ArchivePayload {
   source: 'principia-study-archive';
-  version: 1;
+  version: 2;
   exportedAt: string;
-  account: ArchiveAccount;
   summaries: StudySummary[];
   qa: QaEntry[];
   mistakes: MistakeEntry[];
@@ -38,15 +31,14 @@ export interface ImportResult {
   error?: string;
 }
 
-/** 汇总当前账号的全部档案 */
-export const buildArchive = (userId: string, account: ArchiveAccount): ArchivePayload => ({
+/** 汇总本机全部档案 */
+export const buildArchive = (): ArchivePayload => ({
   source: 'principia-study-archive',
-  version: 1,
+  version: 2,
   exportedAt: new Date().toISOString(),
-  account,
-  summaries: loadSummaries(userId),
-  qa: loadQaHistory(userId),
-  mistakes: listMistakes(userId),
+  summaries: loadSummaries(),
+  qa: loadQaHistory(),
+  mistakes: listMistakes(),
 });
 
 /** 档案里一共多少条记录 */
@@ -75,7 +67,7 @@ const fromBase64 = (code: string): string => {
 /** 打包成可粘贴的同步码 */
 export const encodeArchive = (payload: ArchivePayload): string => toBase64(JSON.stringify(payload));
 
-/** 解析同步码；格式不对时给出可读的中文原因 */
+/** 解析同步码；兼容 v1 / v2 档案，格式不对时给出可读的中文原因 */
 export const decodeArchive = (
   code: string,
 ): { ok: true; payload: ArchivePayload } | { ok: false; error: string } => {
@@ -102,9 +94,8 @@ export const decodeArchive = (
     ok: true,
     payload: {
       source: 'principia-study-archive',
-      version: 1,
+      version: 2,
       exportedAt: typeof p.exportedAt === 'string' ? p.exportedAt : new Date().toISOString(),
-      account: p.account && typeof p.account === 'object' ? p.account : {},
       summaries: Array.isArray(p.summaries) ? p.summaries : [],
       qa: Array.isArray(p.qa) ? p.qa : [],
       mistakes: Array.isArray(p.mistakes) ? p.mistakes : [],
@@ -113,20 +104,20 @@ export const decodeArchive = (
 };
 
 /**
- * 把档案并入当前账号。
+ * 把档案并入本机。
  * 全部按 id 去重：本机已有的记录保持不动，只补进新记录，可安全地反复导入。
  */
-export const importArchive = (payload: ArchivePayload, userId: string): ImportResult => {
-  const existingSummaryIds = new Set(loadSummaries(userId).map((s) => s.id));
+export const importArchive = (payload: ArchivePayload): ImportResult => {
+  const existingSummaryIds = new Set(loadSummaries().map((s) => s.id));
   let summaries = 0;
   for (const s of payload.summaries) {
     if (!s || typeof s.id !== 'string') continue;
     if (!existingSummaryIds.has(s.id)) summaries += 1;
-    saveSummary({ ...s, userId });
+    saveSummary(s);
   }
 
-  const qa = mergeQaEntries(payload.qa.map((e) => ({ ...e, userId })));
-  const mk = mergeMistakes(payload.mistakes.map((e) => ({ ...e, userId })));
+  const qa = mergeQaEntries(payload.qa);
+  const mk = mergeMistakes(payload.mistakes);
 
   return {
     summaries,

@@ -1,7 +1,7 @@
 /**
  * 文档知识库：上传文档 → 解析文本 → 段落分块 → IndexedDB 持久化 → TF-IDF 检索。
  *
- * - 按用户隔离（演示登录体系下按 user.id；未登录归入 'guest'）
+ * - 本站不设账号，所有文档都属于这台设备。
  * - 支持 .txt / .md / .pdf / .docx；PDF 与 docx 解析库按需动态加载，不进主包
  * - 检索为中英文混合的分词 + TF-IDF 余弦相似度，纯本地计算、不依赖嵌入 API
  * - IndexedDB 不可用时静默降级（功能不可用但不报错）
@@ -10,7 +10,6 @@ import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 export interface DocMeta {
   id: string;
-  userId: string;
   name: string;
   /** 文件字节数 */
   size: number;
@@ -25,7 +24,6 @@ export interface DocChunk {
   id: string;
   docId: string;
   docName: string;
-  userId: string;
   index: number;
   text: string;
   /** 词频表（检索时避免重复分词） */
@@ -60,13 +58,11 @@ const openDb = (): Promise<IDBDatabase | null> => {
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains('docs')) {
-          const docs = db.createObjectStore('docs', { keyPath: 'id' });
-          docs.createIndex('by-user', 'userId', { unique: false });
+          db.createObjectStore('docs', { keyPath: 'id' });
         }
         if (!db.objectStoreNames.contains('chunks')) {
           const chunks = db.createObjectStore('chunks', { keyPath: 'id' });
           chunks.createIndex('by-doc', 'docId', { unique: false });
-          chunks.createIndex('by-user', 'userId', { unique: false });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -246,11 +242,10 @@ const termFrequencies = (text: string): Record<string, number> => {
  * 仅检索启用中的文档；分数过低的段落会被过滤。
  */
 export const retrieveChunks = async (
-  userId: string,
   query: string,
   topK = 4,
 ): Promise<RetrievedChunk[]> => {
-  const all = await loadAllChunks(userId, true);
+  const all = await loadAllChunks(true);
   if (all.length === 0 || !query.trim()) return [];
 
   // 文档频率 → IDF
@@ -293,7 +288,6 @@ const genId = () => `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}
 
 /** 保存文档：解析 → 分块 → 入库。返回文档元信息 */
 export const saveDocument = async (
-  userId: string,
   file: File,
   onProgress?: (p: ParseProgress) => void,
 ): Promise<DocMeta> => {
@@ -306,7 +300,6 @@ export const saveDocument = async (
   const chunks = chunkText(text);
   const meta: DocMeta = {
     id: genId(),
-    userId,
     name: file.name,
     size: file.size,
     addedAt: Date.now(),
@@ -319,7 +312,6 @@ export const saveDocument = async (
     id: `${meta.id}#${i}`,
     docId: meta.id,
     docName: meta.name,
-    userId,
     index: i,
     text: t,
     tf: termFrequencies(t),
@@ -337,21 +329,20 @@ export const saveDocument = async (
     tx.onabort = () => reject(new Error('文档保存失败'));
   });
 
-  await refreshDocsCache(userId);
+  await refreshDocsCache();
   return meta;
 };
 
-/** 读取某用户的全部文档元信息（新的在前） */
-export const listDocuments = async (userId: string): Promise<DocMeta[]> => {
+/** 读取全部文档元信息（新的在前） */
+export const listDocuments = async (): Promise<DocMeta[]> => {
   const rows = await txRun<DocMeta[]>(['docs'], 'readonly', ([store]) =>
-    store.index('by-user').getAll(userId) as IDBRequest<DocMeta[]>,
+    store.getAll() as IDBRequest<DocMeta[]>,
   );
   return (rows ?? []).sort((a, b) => b.addedAt - a.addedAt);
 };
 
 /** 删除文档及其全部分块 */
 export const deleteDocument = async (
-  userId: string,
   docId: string,
 ): Promise<{ ok: boolean; error?: string }> => {
   const db = await openDb();
@@ -370,13 +361,12 @@ export const deleteDocument = async (
     tx.onabort = () => resolve(false);
   });
   // 无论成败都刷新缓存，保证列表与存储实际状态一致
-  await refreshDocsCache(userId);
+  await refreshDocsCache();
   return ok ? { ok: true } : { ok: false, error: '删除失败，请重试' };
 };
 
 /** 启用/停用某文档（停用后不参与检索） */
 export const toggleDocument = async (
-  userId: string,
   docId: string,
   enabled: boolean,
 ): Promise<void> => {
@@ -397,18 +387,17 @@ export const toggleDocument = async (
     tx.onerror = () => resolve();
     tx.onabort = () => resolve();
   });
-  await refreshDocsCache(userId);
+  await refreshDocsCache();
 };
 
-/** 加载用户的全部分块（默认只含启用中的文档） */
+/** 加载全部分块（默认只含启用中的文档） */
 export const loadAllChunks = async (
-  userId: string,
   enabledOnly = false,
 ): Promise<DocChunk[]> => {
   const [docs, chunks] = await Promise.all([
-    listDocuments(userId),
+    listDocuments(),
     txRun<DocChunk[]>(['chunks'], 'readonly', ([store]) =>
-      store.index('by-user').getAll(userId) as IDBRequest<DocChunk[]>,
+      store.getAll() as IDBRequest<DocChunk[]>,
     ),
   ]);
   if (!chunks) return [];
@@ -420,7 +409,6 @@ export const loadAllChunks = async (
 
 const docsListeners = new Set<() => void>();
 let docsCache: DocMeta[] = [];
-let docsCacheUser = '';
 const emitDocs = () => docsListeners.forEach((l) => l());
 
 export const subscribeDocs = (listener: () => void): (() => void) => {
@@ -428,23 +416,20 @@ export const subscribeDocs = (listener: () => void): (() => void) => {
   return () => docsListeners.delete(listener);
 };
 
-const refreshDocsCache = async (userId: string): Promise<void> => {
-  docsCache = await listDocuments(userId);
-  docsCacheUser = userId;
+const refreshDocsCache = async (): Promise<void> => {
+  docsCache = await listDocuments();
   emitDocs();
 };
 
-/** React Hook：订阅某用户的文档列表 */
-export const useUserDocs = (userId: string): DocMeta[] => {
+/** React Hook：订阅文档列表 */
+export const useUserDocs = (): DocMeta[] => {
   useEffect(() => {
-    if (docsCacheUser !== userId) {
-      refreshDocsCache(userId);
-    }
-  }, [userId]);
+    void refreshDocsCache();
+  }, []);
 
   const snapshot = useSyncExternalStore(
     subscribeDocs,
-    () => JSON.stringify(docsCacheUser === userId ? docsCache : []),
+    () => JSON.stringify(docsCache),
     () => '[]',
   );
   return useMemo(() => JSON.parse(snapshot) as DocMeta[], [snapshot]);

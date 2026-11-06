@@ -53,17 +53,16 @@ const docExt = (name: string): string =>
   name.toLowerCase().split('.').pop() ?? '';
 
 interface DocLibraryPanelProps {
-  userId: string;
   /** 紧凑模式（悬浮窗内使用） */
   compact?: boolean;
   /** 关闭面板回调（紧凑模式下显示关闭按钮） */
   onClose?: () => void;
 }
 
-const DocLibraryPanel = ({ userId, compact = false, onClose }: DocLibraryPanelProps) => {
+const DocLibraryPanel = ({ compact = false, onClose }: DocLibraryPanelProps) => {
   const t = useT();
   const { tpl } = useLocale();
-  const docs = useUserDocs(userId);
+  const docs = useUserDocs();
   const [dragging, setDragging] = useState(false);
   const [uploadName, setUploadName] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -80,7 +79,7 @@ const DocLibraryPanel = ({ userId, compact = false, onClose }: DocLibraryPanelPr
         setUploadName(file.name);
         setProgress(null);
         try {
-          await saveDocument(userId, file, (p) => setProgress(p));
+          await saveDocument(file, (p) => setProgress(p));
         } catch (err) {
           setUploadError(
             tpl('《{name}》{msg}', {
@@ -93,7 +92,7 @@ const DocLibraryPanel = ({ userId, compact = false, onClose }: DocLibraryPanelPr
       setUploadName(null);
       setProgress(null);
     },
-    [userId, t, tpl],
+    [t, tpl],
   );
 
   const handleDrop = (e: React.DragEvent) => {
@@ -229,14 +228,14 @@ const DocLibraryPanel = ({ userId, compact = false, onClose }: DocLibraryPanelPr
               onConfirmDelete={() => setConfirmDeleteId(doc.id)}
               onCancelDelete={() => setConfirmDeleteId(null)}
               onDelete={async () => {
-                const res = await deleteDocument(userId, doc.id);
+                const res = await deleteDocument(doc.id);
                 if (!res.ok) {
                   toast.error(res.error ? t(res.error) : t('删除失败'));
                   return;
                 }
                 setConfirmDeleteId(null);
               }}
-              onToggle={(enabled) => toggleDocument(userId, doc.id, enabled)}
+              onToggle={(enabled) => toggleDocument(doc.id, enabled)}
             />
           ))}
         </ul>

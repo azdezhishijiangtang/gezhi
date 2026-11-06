@@ -113,7 +113,7 @@ const dict: Record<string, string> = {
     'Upload textbooks / lecture notes / memos; relevant passages are retrieved automatically and the AI cites your materials.',
   '每轮问答自动存入学习档案，可回顾、AI 总结、生成专项练习。':
     'Every Q&A round is saved to your Study Archive for review, AI summaries, and targeted practice.',
-  '答疑历史按账户沉淀，AI 可帮你总结薄弱点并生成个性化练习题。':
+  '答疑历史保存在本机，AI 可帮你总结薄弱点并生成个性化练习题。':
     'Q&A history accumulates per account; the AI can summarize your weak spots and generate personalized exercises.',
   '打开学习档案': 'Open Study Archive',
 
