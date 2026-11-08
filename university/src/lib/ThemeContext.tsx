@@ -4,6 +4,7 @@
  * - 首次访问跟随系统 prefers-color-scheme
  * - 切换即同步 <html class="dark"> 与 color-scheme
  */
+import { safeLocal } from '@/lib/compat';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type Theme = 'light' | 'dark';
@@ -12,7 +13,7 @@ const STORAGE_KEY = 'mathlens-theme';
 
 const readStored = (): Theme | null => {
   try {
-    const v = localStorage.getItem(STORAGE_KEY);
+    const v = safeLocal.getItem(STORAGE_KEY);
     return v === 'light' || v === 'dark' ? v : null;
   } catch {
     return null;
@@ -59,7 +60,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const setTheme = useCallback((t: Theme) => {
     try {
-      localStorage.setItem(STORAGE_KEY, t);
+      safeLocal.setItem(STORAGE_KEY, t);
     } catch {
       /* 存储失败时仅本次会话生效 */
     }

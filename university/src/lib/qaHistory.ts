@@ -2,6 +2,7 @@
  * 答疑记忆：把每次 AI 答疑的问题与回答保存到 localStorage。
  * 本站是纯前端应用，不设账号，所有记录都属于这台设备。
  */
+import { safeLocal } from '@/lib/compat';
 import { useMemo, useSyncExternalStore } from 'react';
 
 export interface QaEntry {
@@ -43,7 +44,7 @@ const stripLegacy = <T>(entry: T): T => {
 
 const readAll = (): QaEntry[] => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeLocal.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as QaEntry[]).map(stripLegacy) : [];
@@ -54,7 +55,7 @@ const readAll = (): QaEntry[] => {
 
 const writeAll = (entries: QaEntry[]): void => {
   try {
-    localStorage.setItem(
+    safeLocal.setItem(
       STORAGE_KEY,
       JSON.stringify(entries.slice(-MAX_ENTRIES)),
     );

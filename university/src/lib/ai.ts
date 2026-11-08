@@ -1,4 +1,5 @@
-import { canReadStream, parsePayloads, readResponseText } from './compat'
+import { canReadStream, parsePayloads, readResponseText, safeLocal } from './compat';
+
 /**
  * AI 答疑服务：OpenAI 兼容接口的配置管理与流式对话。
  * 用户的 API Key 默认只存在内存中；磁盘上只保留不可用于请求的句柄。
@@ -229,12 +230,12 @@ const sensitiveReplacer = (_k: string, v: unknown): unknown =>
   _k === 'apiKey' && typeof v === 'string' && v.length > 0 && !vault.isHandle(v) ? '' : v;
 
 const writeProfiles = (list: (AiProfile | null)[]): void =>
-  localStorage.setItem(PROFILES_KEY, JSON.stringify(list, sensitiveReplacer));
+  safeLocal.setItem(PROFILES_KEY, JSON.stringify(list, sensitiveReplacer));
 
 /** 读取三个存档（旧版单配置 / 旧版明文密钥会自动迁移） */
 export const readAiProfiles = (): (AiProfile | null)[] => {
   try {
-    const raw = localStorage.getItem(PROFILES_KEY);
+    const raw = safeLocal.getItem(PROFILES_KEY);
     if (raw) {
       const arr = JSON.parse(raw) as (AiProfile | null)[];
       const list: (AiProfile | null)[] = Array.from({ length: AI_PROFILE_COUNT }, (_, i) => {
@@ -253,7 +254,7 @@ export const readAiProfiles = (): (AiProfile | null)[] => {
       return list;
     }
     // 迁移：旧版单配置 → 存档 1
-    const legacy = localStorage.getItem(CONFIG_KEY);
+    const legacy = safeLocal.getItem(CONFIG_KEY);
     if (legacy) {
       const parsed = JSON.parse(legacy) as AiProfile;
       if (parsed?.apiKey && !vault.isHandle(parsed.apiKey)) {
@@ -262,7 +263,7 @@ export const readAiProfiles = (): (AiProfile | null)[] => {
       }
       const list: (AiProfile | null)[] = [isValid(parsed) ? parsed : null, null, null];
       writeProfiles(list);
-      localStorage.removeItem(CONFIG_KEY);
+      safeLocal.removeItem(CONFIG_KEY);
       return list;
     }
   } catch {
@@ -287,29 +288,29 @@ export const clearAiProfile = (index: number): void => {
     const next = list.findIndex(isValid);
     if (next >= 0) setActiveProfile(next);
     else {
-      localStorage.removeItem(CONFIG_KEY);
-      localStorage.setItem(ACTIVE_KEY, String(index));
+      safeLocal.removeItem(CONFIG_KEY);
+      safeLocal.setItem(ACTIVE_KEY, String(index));
     }
   }
 };
 
 export const getActiveProfile = (): number => {
-  const raw = Number(localStorage.getItem(ACTIVE_KEY));
+  const raw = Number(safeLocal.getItem(ACTIVE_KEY));
   return Number.isInteger(raw) && raw >= 0 && raw < AI_PROFILE_COUNT ? raw : 0;
 };
 
 export const setActiveProfile = (index: number): void => {
-  localStorage.setItem(ACTIVE_KEY, String(index));
+  safeLocal.setItem(ACTIVE_KEY, String(index));
   const p = readAiProfiles()[index];
-  if (isValid(p)) localStorage.setItem(CONFIG_KEY, JSON.stringify(p, sensitiveReplacer));
-  else localStorage.removeItem(CONFIG_KEY);
+  if (isValid(p)) safeLocal.setItem(CONFIG_KEY, JSON.stringify(p, sensitiveReplacer));
+  else safeLocal.removeItem(CONFIG_KEY);
 };
 
 export const readAiConfig = (): AiConfig | null => {
   try {
     const p = readAiProfiles()[getActiveProfile()];
     if (isValid(p)) return { baseUrl: p.baseUrl, apiKey: p.apiKey, model: p.model, reasoningEffort: thinkingModePref(p) };
-    const raw = localStorage.getItem(CONFIG_KEY);
+    const raw = safeLocal.getItem(CONFIG_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AiConfig;
     if (!parsed?.baseUrl || !vault.isHandle(parsed?.apiKey) || !parsed?.model) return null;
@@ -344,10 +345,10 @@ export const clearAiConfig = (): void => {
  */
 const AUTO_MODEL_KEY = 'mathlens-ai-auto-model';
 
-export const readAutoModel = (): boolean => localStorage.getItem(AUTO_MODEL_KEY) === '1';
+export const readAutoModel = (): boolean => safeLocal.getItem(AUTO_MODEL_KEY) === '1';
 
 export const writeAutoModel = (on: boolean): void => {
-  localStorage.setItem(AUTO_MODEL_KEY, on ? '1' : '0');
+  safeLocal.setItem(AUTO_MODEL_KEY, on ? '1' : '0');
 };
 
 /**
@@ -357,10 +358,10 @@ export const writeAutoModel = (on: boolean): void => {
  */
 const SELF_CHECK_KEY = 'mathlens-ai-self-check';
 
-export const readSelfCheck = (): boolean => localStorage.getItem(SELF_CHECK_KEY) !== '0';
+export const readSelfCheck = (): boolean => safeLocal.getItem(SELF_CHECK_KEY) !== '0';
 
 export const writeSelfCheck = (on: boolean): void => {
-  localStorage.setItem(SELF_CHECK_KEY, on ? '1' : '0');
+  safeLocal.setItem(SELF_CHECK_KEY, on ? '1' : '0');
 };
 
 /**
@@ -369,10 +370,10 @@ export const writeSelfCheck = (on: boolean): void => {
  */
 const FALLBACK_KEY = 'mathlens-ai-fallback';
 
-export const readFallback = (): boolean => localStorage.getItem(FALLBACK_KEY) !== '0';
+export const readFallback = (): boolean => safeLocal.getItem(FALLBACK_KEY) !== '0';
 
 export const writeFallback = (on: boolean): void => {
-  localStorage.setItem(FALLBACK_KEY, on ? '1' : '0');
+  safeLocal.setItem(FALLBACK_KEY, on ? '1' : '0');
 };
 
 /**
@@ -383,17 +384,17 @@ export const writeFallback = (on: boolean): void => {
 const MULTI_PATH_KEY = 'mathlens-ai-multi-path';
 const MULTI_PATH_COUNT_KEY = 'mathlens-ai-multi-path-count';
 
-export const readMultiPath = (): boolean => localStorage.getItem(MULTI_PATH_KEY) === '1';
+export const readMultiPath = (): boolean => safeLocal.getItem(MULTI_PATH_KEY) === '1';
 export const writeMultiPath = (on: boolean): void => {
-  localStorage.setItem(MULTI_PATH_KEY, on ? '1' : '0');
+  safeLocal.setItem(MULTI_PATH_KEY, on ? '1' : '0');
 };
 /** 并发求解的路数：2/3/4，默认 3 */
 export const readMultiPathCount = (): number => {
-  const n = Number(localStorage.getItem(MULTI_PATH_COUNT_KEY));
+  const n = Number(safeLocal.getItem(MULTI_PATH_COUNT_KEY));
   return [2, 3, 4].includes(n) ? n : 3;
 };
 export const writeMultiPathCount = (n: number): void => {
-  localStorage.setItem(MULTI_PATH_COUNT_KEY, String(n));
+  safeLocal.setItem(MULTI_PATH_COUNT_KEY, String(n));
 };
 
 /**
@@ -401,9 +402,9 @@ export const writeMultiPathCount = (n: number): void => {
  * 再交叉比对、标注分歧，把「单一模型唯一答案」的偶然错误风险降到最低。需至少 2 个已配置存档。
  */
 const CROSS_CHECK_KEY = 'mathlens-ai-cross-check';
-export const readCrossCheck = (): boolean => localStorage.getItem(CROSS_CHECK_KEY) === '1';
+export const readCrossCheck = (): boolean => safeLocal.getItem(CROSS_CHECK_KEY) === '1';
 export const writeCrossCheck = (on: boolean): void => {
-  localStorage.setItem(CROSS_CHECK_KEY, on ? '1' : '0');
+  safeLocal.setItem(CROSS_CHECK_KEY, on ? '1' : '0');
 };
 
 /**
@@ -413,9 +414,9 @@ export const writeCrossCheck = (on: boolean): void => {
  * 需同时开启「多路径自洽」且至少 2 个已配置存档；否则自动等同于普通多路径合成。
  */
 const LINK_KEY = 'mathlens-ai-link';
-export const readLink = (): boolean => localStorage.getItem(LINK_KEY) === '1';
+export const readLink = (): boolean => safeLocal.getItem(LINK_KEY) === '1';
 export const writeLink = (on: boolean): void => {
-  localStorage.setItem(LINK_KEY, on ? '1' : '0');
+  safeLocal.setItem(LINK_KEY, on ? '1' : '0');
 };
 
 /**
@@ -424,9 +425,9 @@ export const writeLink = (on: boolean): void => {
  * 把检索到的权威资料用足，进一步降低幻觉与误答。仅深度思考 / 难题时生效；快速回答 / 简单题自动跳过，不额外费 token。
  */
 const RAG_BOOST_KEY = 'mathlens-ai-rag-boost';
-export const readRagBoost = (): boolean => localStorage.getItem(RAG_BOOST_KEY) === '1';
+export const readRagBoost = (): boolean => safeLocal.getItem(RAG_BOOST_KEY) === '1';
 export const writeRagBoost = (on: boolean): void => {
-  localStorage.setItem(RAG_BOOST_KEY, on ? '1' : '0');
+  safeLocal.setItem(RAG_BOOST_KEY, on ? '1' : '0');
 };
 
 /** RAG 难题专精模式下加强检索召回的段落数（默认 4） */

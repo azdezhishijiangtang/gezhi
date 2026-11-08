@@ -17,6 +17,7 @@
  * 明确提示用户重新粘贴 Key / 输入解锁口令，并展示上次拉到的实时列表。
  */
 
+import { safeLocal } from '@/lib/compat';
 import { AI_PRESETS, fetchModels } from './ai';
 import { vault } from './byokVault';
 
@@ -82,7 +83,7 @@ const cacheKeyFor = async (baseUrl: string, keyHandle: string): Promise<string> 
 
 const readCache = (): CacheShape => {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = safeLocal.getItem(CACHE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as CacheShape;
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -99,7 +100,7 @@ const writeCache = (cache: CacheShape): void => {
     for (const [k, v] of Object.entries(cache)) {
       if (v?.fetchedAt && now - v.fetchedAt < CACHE_KEEP_MS) pruned[k] = v;
     }
-    localStorage.setItem(CACHE_KEY, JSON.stringify(pruned));
+    safeLocal.setItem(CACHE_KEY, JSON.stringify(pruned));
   } catch {
     /* 忽略写入失败（隐私模式等） */
   }

@@ -1,3 +1,4 @@
+import { safeLocal } from '@/lib/compat';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Subject } from '@/types';
 
@@ -14,7 +15,7 @@ const SubjectContext = createContext<SubjectContextValue | null>(null);
 const readInitial = (): Subject => {
   if (typeof window === 'undefined') return 'math';
   try {
-    const v = window.localStorage.getItem(STORAGE_KEY);
+    const v = safeLocal.getItem(STORAGE_KEY);
     if (v === 'math' || v === 'physics') return v;
   } catch {
     /* ignore */
@@ -27,7 +28,7 @@ export const SubjectProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, subject);
+      safeLocal.setItem(STORAGE_KEY, subject);
     } catch {
       /* ignore */
     }

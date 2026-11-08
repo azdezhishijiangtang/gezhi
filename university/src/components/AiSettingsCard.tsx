@@ -140,12 +140,19 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
    * 拉取模型目录（随服务商自动更新）。
    * 走 modelCatalog：缓存新鲜直接用，失败回退旧实时列表/内置目录并回传原因。
    * silent 模式下不额外弹错，但仍展示上次拉到的列表与原因。
+   *
+   * 并发保护：挂载拉取、防抖拉取、切换存档拉取可能同时在途，只接受
+   * 最后一次请求的结果，避免旧响应覆盖新目录或提前清掉 loading 标志。
    */
+  const modelsReqRef = useRef(0);
+
   const loadModels = async (
     baseUrl: string,
     apiKey: string,
     opts: { force?: boolean; silent?: boolean; slotIndex?: number } = {},
   ) => {
+    const reqId = ++modelsReqRef.current;
+    const isLatest = () => reqId === modelsReqRef.current;
     const { force = false, silent = false, slotIndex = slot } = opts;
     if (!baseUrl.trim()) {
       if (!silent) setModelError(t('请先填写接口地址（Base URL）。'));
@@ -154,6 +161,7 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
     const resolved = resolveKeyHandle(apiKey, slotIndex);
     if (!resolved.handle) {
       const fallback = await getCatalog(baseUrl, '', {});
+      if (!isLatest()) return;
       setCatalog(fallback);
       if (!silent) setModelError(fallback.error ?? resolved.error);
       return;
@@ -162,14 +170,15 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
     setModelError(null);
     try {
       const entry = await getCatalog(baseUrl, resolved.handle, { force });
+      if (!isLatest()) return;
       setCatalog(entry);
       if (entry.error && !silent) setModelError(entry.error);
       if (entry.models.length > 0 && !entry.error) setManualModel(false);
       if (entry.models.length === 0) setManualModel(true);
     } catch (err) {
-      if (!silent) setModelError(err instanceof Error ? err.message : String(err));
+      if (isLatest() && !silent) setModelError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoadingModels(false);
+      if (isLatest()) setLoadingModels(false);
     }
   };
 
@@ -190,6 +199,8 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
       void loadModels(form.baseUrl, form.apiKey, { silent: true, slotIndex: slot });
     }, 800);
     return () => clearTimeout(timer);
+    // 只在 Key / 地址变化时重跑；loadModels 与 slot 通过闭包读取当次渲染值即可
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.baseUrl, form.apiKey]);
 
   /** 切换正在编辑的存档 */

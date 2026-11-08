@@ -182,12 +182,12 @@ const Tutor = () => {
             <p className="text-sm flex-1 min-w-0">
               {t('正在带着知识点提问：')}
               <Link to={`/topics/${topic.id}`} className="text-info font-medium hover:underline mx-1">
-                <InlineMathText text={topic.title} />
+                <InlineMathText escape text={topic.title} />
               </Link>
               {section && (
                 <>
                   <span className="text-muted-foreground">·</span>
-                  <span className="text-info font-medium mx-1"><InlineMathText text={section} /></span>
+                  <span className="text-info font-medium mx-1"><InlineMathText escape text={section} /></span>
                 </>
               )}
               <span className="text-muted-foreground">{tpl('（{name} · {chapter}）', { name: course?.name ?? '', chapter: topic.chapter })}</span>
@@ -228,11 +228,11 @@ const Tutor = () => {
                     {topic ? (
                       <>
                         {t('也可以让我结合「')}
-                        <InlineMathText text={topic.title} />
+                        <InlineMathText escape text={topic.title} />
                         {section ? (
                           <>
                             {' · '}
-                            <InlineMathText text={section} />
+                            <InlineMathText escape text={section} />
                           </>
                         ) : null}
                         {t('」这一节展开讲。')}
@@ -365,7 +365,7 @@ const Tutor = () => {
                       )}
                       {m.content ? (
                         <>
-                          <MathText content={m.content} className="text-sm" />
+                          <MathText escape content={m.content} className="text-sm" />
                           {/* 引用的文档段落 */}
                           {m.sources && m.sources.length > 0 && (
                             <details className="mt-2.5 border border-info/20 bg-info/5 px-3.5 py-2.5 text-xs">

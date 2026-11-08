@@ -7,6 +7,7 @@
  *
  * 兼容旧版备份：解析时会忽略历史遗留的 account / userId 字段。
  */
+import { encodeUtf8, decodeUtf8 } from '@/lib/compat';
 import { loadSummaries, saveSummary, type StudySummary } from '@/lib/summaryArchive';
 import { loadQaHistory, mergeQaEntries, type QaEntry } from '@/lib/qaHistory';
 import { listMistakes, mergeMistakes, type MistakeEntry } from '@/lib/mistakeBook';
@@ -48,7 +49,7 @@ export const archiveEntryCount = (p: ArchivePayload): number =>
 /* ───────── 编码／解码 ───────── */
 
 const toBase64 = (text: string): string => {
-  const bytes = new TextEncoder().encode(text);
+  const bytes = encodeUtf8(text);
   let bin = '';
   const chunk = 0x8000; // 分块，避免超长字符串把调用栈打爆
   for (let i = 0; i < bytes.length; i += chunk) {
@@ -61,7 +62,7 @@ const fromBase64 = (code: string): string => {
   const bin = atob(code);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
+  return decodeUtf8(bytes);
 };
 
 /** 打包成可粘贴的同步码 */

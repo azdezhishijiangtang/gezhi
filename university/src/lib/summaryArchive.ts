@@ -4,6 +4,7 @@
  * 方便回看不同时间段的学习诊断与进步轨迹。数据存于 localStorage。
  * 本站是纯前端应用，不设账号。
  */
+import { safeLocal } from '@/lib/compat';
 
 export interface StudySummary {
   id: string;
@@ -31,7 +32,7 @@ const stripLegacy = <T>(entry: T): T => {
 
 const readAll = (): StudySummary[] => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeLocal.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as StudySummary[]).map(stripLegacy) : [];
@@ -42,7 +43,7 @@ const readAll = (): StudySummary[] => {
 
 const writeAll = (list: StudySummary[]): void => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, MAX_ENTRIES)));
+    safeLocal.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, MAX_ENTRIES)));
   } catch {
     /* 配额超限等情况下静默降级 */
   }

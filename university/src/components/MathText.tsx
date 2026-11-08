@@ -163,7 +163,8 @@ const parseBlock = (text: string, escape = false): string => {
         quoteLines.push(lines[i].slice(2));
         i++;
       }
-      html.push(`<blockquote>${parseInline(quoteLines.join('<br/>'), escape)}</blockquote>`);
+      // 先逐行解析再拼接 <br/>，否则 escape 模式下 <br/> 会被转义成字面文本
+      html.push(`<blockquote>${quoteLines.map((l) => parseInline(l, escape)).join('<br/>')}</blockquote>`);
       continue;
     }
 

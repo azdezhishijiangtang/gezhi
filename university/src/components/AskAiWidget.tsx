@@ -116,7 +116,7 @@ const AskAiWidget = () => {
               {topic && (
                 <span className="flex items-center gap-1 text-xs text-info truncate max-w-[140px]" title={topic.title}>
                   <BookOpen className="h-3 w-3 shrink-0" />
-                  <span className="truncate"><InlineMathText text={topic.title} /></span>
+                  <span className="truncate"><InlineMathText escape text={topic.title} /></span>
                 </span>
               )}
               <div className="ml-auto flex items-center gap-1">
@@ -259,7 +259,7 @@ const AskAiWidget = () => {
                       )}
                       {m.content ? (
                         <>
-                          <MathText content={m.content} className="text-sm" />
+                          <MathText escape content={m.content} className="text-sm" />
                           {m.sources && m.sources.length > 0 && (
                             <p className="mt-1.5 text-xs text-info">
                               {t('· 参考了我的文档 ')}{m.sources.length}{t(' 个段落（')}

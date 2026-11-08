@@ -3,6 +3,7 @@
  * 中文为默认；切换为英文时，UI 文案与知识库数据均按英文呈现。
  * 模块级变量让非 React 上下文（AI 提示词、Word 导出等）也能读取当前语言。
  */
+import { safeLocal } from '@/lib/compat';
 
 export type Lang = 'zh' | 'en';
 
@@ -10,7 +11,7 @@ const KEY = 'principia-lang';
 
 function read(): Lang {
   try {
-    const v = localStorage.getItem(KEY);
+    const v = safeLocal.getItem(KEY);
     if (v === 'en' || v === 'zh') return v;
   } catch {
     /* 忽略隐私模式等异常 */
@@ -30,7 +31,7 @@ export const isEn = (): boolean => lang === 'en';
 export const setLangValue = (next: Lang): void => {
   lang = next;
   try {
-    localStorage.setItem(KEY, next);
+    safeLocal.setItem(KEY, next);
   } catch {
     /* 忽略 */
   }

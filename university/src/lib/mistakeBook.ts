@@ -3,6 +3,7 @@
  * 图片以 dataURL 存入 localStorage（单张 ≤1.5MB，最多 4 张）。
  * 本站是纯前端应用，不设账号，所有记录都属于这台设备。
  */
+import { safeLocal } from '@/lib/compat';
 import { useMemo, useSyncExternalStore } from 'react';
 
 export interface MistakeImage {
@@ -36,7 +37,7 @@ const stripLegacy = <T>(entry: T): T => {
 
 const readAll = (): MistakeEntry[] => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeLocal.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? (parsed as MistakeEntry[]).map(stripLegacy) : [];
   } catch {
@@ -54,7 +55,7 @@ if (typeof window !== 'undefined') {
 
 const writeAll = (list: MistakeEntry[]): { ok: boolean; error?: string } => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    safeLocal.setItem(STORAGE_KEY, JSON.stringify(list));
     emit();
     return { ok: true };
   } catch {

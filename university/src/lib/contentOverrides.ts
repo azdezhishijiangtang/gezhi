@@ -5,6 +5,7 @@
  * 说明：这是纯前端演示站，覆盖仅对当前浏览器生效；要让所有访客看到，
  * 需要把修改同步到源码后重新构建发布。
  */
+import { safeLocal } from '@/lib/compat';
 import type { Topic } from '@/types';
 
 export interface TopicOverride {
@@ -18,7 +19,7 @@ const STORAGE_KEY = 'mathlens-topic-overrides-v1';
 
 export const loadOverrides = (): Record<string, TopicOverride> => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeLocal.getItem(STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? (parsed as Record<string, TopicOverride>) : {};
@@ -35,7 +36,7 @@ export interface WriteResult {
 
 const writeAll = (all: Record<string, TopicOverride>): WriteResult => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    safeLocal.setItem(STORAGE_KEY, JSON.stringify(all));
     return { ok: true };
   } catch {
     return { ok: false, error: '存储空间不足，请清理旧数据' };
