@@ -149,7 +149,8 @@ const latestRemoteFor = (baseUrl: string, now: number): CacheEntry | null => {
 const describeCatalogError = (err: unknown): string => {
   const msg = err instanceof Error ? err.message : String(err);
   if (/failed to fetch|networkerror|load failed/i.test(msg)) {
-    return '无法访问 /models：可能是网络不通，或服务商未开放浏览器跨域（CORS）。';
+    // 断网、DNS 失败、代理异常也会走到这里，附原始错误便于区分，不能只解释为 CORS
+    return `无法访问 /models：可能是网络不通，或服务商未开放浏览器跨域（CORS）。（原始错误：${msg}）`;
   }
   if (/超时|timeout|abort/i.test(msg)) {
     return '获取模型列表超时（8 秒），请稍后重试或检查网络。';

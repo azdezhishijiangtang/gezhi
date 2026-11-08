@@ -599,7 +599,11 @@ export const fetchModels = async (
     }
   }
   if (lastError instanceof Error) throw lastError;
-  throw new Error(msg('无法获取模型列表，请检查接口地址与跨域（CORS）设置。', 'Cannot fetch models; check the base URL and CORS settings.'));
+  const detail = lastError == null ? '' : String(lastError);
+  throw new Error(msg(
+    `无法获取模型列表${detail ? `：${detail}` : ''}。请检查接口地址、密钥与网络；仅当控制台确有 CORS 报错时才需更换跨域地址。`,
+    `Cannot fetch models${detail ? `: ${detail}` : ''}. Check the base URL, key and network.`,
+  ));
 };
 
 /** 对话消息（与 OpenAI 接口对齐） */
@@ -636,9 +640,11 @@ export const describeAiError = (err: unknown): string => {
   }
   const msg = err instanceof Error ? err.message : String(err);
   if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+    // 该分支同时覆盖断网、DNS 失败、代理异常与 JS 异常，不能只解释为 CORS。
+    // 附上原始错误信息，便于区分真实原因。
     return en
-      ? 'Network request failed: the network may be down, or the provider may block browser cross-origin requests (CORS). Try another provider or check your proxy settings.'
-      : '网络请求失败：可能是网络不通，或该服务商不允许浏览器跨域直连（CORS）。可尝试更换服务商，或检查网络代理设置。';
+      ? `Network request failed: the network may be down, or the provider may block browser cross-origin requests (CORS). Try another provider or check your proxy settings. (Original error: ${msg})`
+      : `网络请求失败：可能是网络不通，或该服务商不允许浏览器跨域直连（CORS）。可尝试更换服务商，或检查网络代理设置。（原始错误：${msg}）`;
   }
   if (/401|invalid.*api key|unauthorized/i.test(msg)) {
     return en
