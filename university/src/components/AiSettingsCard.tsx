@@ -114,20 +114,58 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
 
 
   /**
-   * 拉取模型目录（随服务商自动更新）。
-   * 走 modelCatalog：缓存新鲜直接用，过期后台刷新，失败回退内置目录。
-   * silent 模式下失败不打扰用户。
+   * 把「输入框里的明文 / 句柄 / 已保存存档」统一解析成可用的保险库句柄。
+   * 明文写入独立的临时槽位（不覆盖当前生效存档的密钥），
+   * 这样「刷新模型列表」无需先点保存也能立即生效。
    */
-  const loadModels = async (baseUrl: string, apiKey: string, opts: { force?: boolean; silent?: boolean } = {}) => {
-    const { force = false, silent = false } = opts;
-    if (!baseUrl.trim() || !apiKey.trim()) return;
+  const resolveKeyHandle = (raw: string, slotIndex: number): { handle: string | null; error: string | null } => {
+    const typed = raw.trim();
+    if (typed && !vault.isHandle(typed)) {
+      const draftSlot = `profile-${slotIndex}-draft`;
+      vault.set(draftSlot, typed);
+      return { handle: vault.handleFor(draftSlot), error: null };
+    }
+    const candidate = typed || (profiles[slotIndex]?.apiKey ?? '').trim();
+    if (!candidate) return { handle: null, error: t('请先填写 API Key。') };
+    if (!vault.has(candidate)) {
+      return {
+        handle: null,
+        error: t('密钥已锁定：请重新粘贴 API Key，或在下方输入解锁口令后再刷新模型列表。'),
+      };
+    }
+    return { handle: candidate, error: null };
+  };
+
+  /**
+   * 拉取模型目录（随服务商自动更新）。
+   * 走 modelCatalog：缓存新鲜直接用，失败回退旧实时列表/内置目录并回传原因。
+   * silent 模式下不额外弹错，但仍展示上次拉到的列表与原因。
+   */
+  const loadModels = async (
+    baseUrl: string,
+    apiKey: string,
+    opts: { force?: boolean; silent?: boolean; slotIndex?: number } = {},
+  ) => {
+    const { force = false, silent = false, slotIndex = slot } = opts;
+    if (!baseUrl.trim()) {
+      if (!silent) setModelError(t('请先填写接口地址（Base URL）。'));
+      return;
+    }
+    const resolved = resolveKeyHandle(apiKey, slotIndex);
+    if (!resolved.handle) {
+      const fallback = await getCatalog(baseUrl, '', {});
+      setCatalog(fallback);
+      if (!silent) setModelError(fallback.error ?? resolved.error);
+      return;
+    }
     setLoadingModels(true);
     setModelError(null);
     try {
-      const entry = await getCatalog(baseUrl, apiKey, { force });
+      const entry = await getCatalog(baseUrl, resolved.handle, { force });
       setCatalog(entry);
-      // 只有「完全没有可用列表」时才需要手动输入
-      setManualModel(entry.models.length === 0);
+      if (entry.error && !silent) setModelError(entry.error);
+      if (entry.models.length > 0 && !entry.error) setManualModel(false);
+      if (entry.models.length === 0) setManualModel(true);
     } catch (err) {
       if (!silent) setModelError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -139,7 +177,7 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
   useEffect(() => {
     if (form.baseUrl.trim() && form.apiKey.trim()) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- 挂载后拉取模型目录属于与外部服务同步，loading 标志需同步置位
-      void loadModels(form.baseUrl, form.apiKey, { silent: true });
+      void loadModels(form.baseUrl, form.apiKey, { silent: true, slotIndex: slot });
     }
     // 仅在挂载时执行一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,7 +187,7 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
   useEffect(() => {
     if (!form.baseUrl.trim() || !form.apiKey.trim()) return;
     const timer = setTimeout(() => {
-      void loadModels(form.baseUrl, form.apiKey, { silent: true });
+      void loadModels(form.baseUrl, form.apiKey, { silent: true, slotIndex: slot });
     }, 800);
     return () => clearTimeout(timer);
   }, [form.baseUrl, form.apiKey]);
@@ -167,7 +205,7 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
     const presetMatch = p ? AI_PRESETS.some((pr) => pr.baseUrl === p.baseUrl) : false;
     setCustomActive(Boolean(p?.baseUrl) && !presetMatch);
     // 已配置过的存档静默尝试拉取模型列表
-    if (p?.apiKey && p?.baseUrl) void loadModels(p.baseUrl, p.apiKey, { silent: true });
+    if (p?.apiKey && p?.baseUrl) void loadModels(p.baseUrl, p.apiKey, { silent: true, slotIndex: i });
   };
 
   const applyPreset = (idx: number) => {
@@ -344,8 +382,8 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
           <Label htmlFor="ai-model">{t('模型名称')}</Label>
           <button
             type="button"
-            onClick={() => void loadModels(form.baseUrl, form.apiKey, { force: true })}
-            disabled={!form.apiKey.trim() || !form.baseUrl.trim() || loadingModels}
+            onClick={() => void loadModels(form.baseUrl, form.apiKey, { force: true, slotIndex: slot })}
+            disabled={!form.baseUrl.trim() || loadingModels}
             className="flex items-center gap-1 text-xs text-info hover:underline disabled:text-muted-foreground disabled:no-underline disabled:cursor-not-allowed"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loadingModels ? 'animate-spin' : ''}`} />
@@ -382,12 +420,7 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
 
         {/* 目录来源与更新时间 */}
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          {modelError ? (
-            <span className="text-destructive flex items-center gap-1">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              {modelError}
-            </span>
-          ) : catalog.models.length > 0 ? (
+          {catalog.models.length > 0 ? (
             <span className="flex items-center gap-1 text-muted-foreground">
               {catalog.source === 'remote' ? (
                 <>
@@ -398,7 +431,7 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
               ) : (
                 <>
                   <Database className="h-3.5 w-3.5 shrink-0 text-warning" />
-                  {t('内置参考列表 · ')}{catalog.models.length}{t(' 个模型（实时拉取失败，可手动输入）')}
+                  {t('内置参考列表 · ')}{catalog.models.length}{t(' 个模型（实时列表不可用，可手动输入）')}
                 </>
               )}
             </span>
@@ -421,6 +454,14 @@ const AiSettingsCard = ({ onSaved, compact = false }: AiSettingsCardProps) => {
             </button>
           )}
         </div>
+
+        {/* 实时拉取失败 / 密钥锁定：明确给出可操作的原因，不再静默回退 */}
+        {(modelError || catalog.error) && (
+          <p className="flex items-start gap-1.5 text-xs text-destructive leading-relaxed">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>{t(modelError || catalog.error || '')}</span>
+          </p>
+        )}
 
         {/* 已保存/正在填写的模型若已退役，给出迁移提示 */}
         {retiredModelHint(form.model) && (

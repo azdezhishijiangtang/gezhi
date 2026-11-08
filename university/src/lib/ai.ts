@@ -548,28 +548,58 @@ export const pickAutoProfile = (
  */
 export const fetchModels = async (
   baseUrl: string,
-  apiKey: string,
+  keyHandle: string,
   signal?: AbortSignal,
 ): Promise<string[]> => {
-  const url = `${baseUrl.replace(/\/+$/, '')}/models`;
-  const res = await vault.secureFetch(url, {
-    method: 'GET',
-    headers: {
-      Authorization: vault.authHeaders(apiKey).Authorization,
-      'Content-Type': 'application/json',
-    },
-    signal,
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    throw new Error(describeAiError(new Error(`${res.status} ${detail.slice(0, 200)}`)));
+  const base = baseUrl.trim().replace(/\/+$/, '');
+  const msg = (zh: string, en: string) => (isEn() ? en : zh);
+
+  // 部分服务商把 /models 挂在 /v1 下，部分挂在根路径；404 时互相回退。
+  const candidates = [`${base}/models`];
+  const version = base.match(/\/v\d+(?:beta)?$/i);
+  if (version) candidates.push(`${base.slice(0, -version[0].length)}/models`);
+  else candidates.push(`${base}/v1/models`);
+
+  let lastError: unknown = null;
+  for (const url of candidates) {
+    try {
+      const res = await vault.secureFetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: vault.authHeaders(keyHandle).Authorization,
+          'Content-Type': 'application/json',
+        },
+        signal,
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        const hint =
+          res.status === 401 || res.status === 403
+            ? msg('API Key 无效或没有读取模型列表的权限', 'API key is invalid or lacks permission to list models')
+            : res.status === 404
+              ? msg('该接口不提供 /models 列表', 'This endpoint does not provide a /models list')
+              : `HTTP ${res.status}`;
+        lastError = new Error(`${hint}${detail ? `：${detail.slice(0, 160)}` : ''}`);
+        if (res.status === 404) continue;
+        throw lastError;
+      }
+      const json = (await res.json()) as { data?: { id?: string }[] };
+      const ids = (json.data ?? [])
+        .map((m) => m.id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0);
+      if (ids.length === 0) {
+        throw new Error(msg('该接口没有返回可用模型，请手动填写模型名。', 'No models returned; please enter a model name manually.'));
+      }
+      return Array.from(new Set(ids)).sort((a, b) => a.localeCompare(b));
+    } catch (err) {
+      if (signal?.aborted) {
+        throw new Error(msg('获取模型列表超时（8 秒），请检查网络后重试。', 'Fetching models timed out (8s); check the network and retry.'));
+      }
+      lastError = err;
+    }
   }
-  const json = (await res.json()) as { data?: { id?: string }[] };
-  const ids = (json.data ?? [])
-    .map((m) => m.id)
-    .filter((id): id is string => typeof id === 'string' && id.length > 0);
-  if (ids.length === 0) throw new Error('该接口没有返回可用模型，请手动填写模型名。');
-  return Array.from(new Set(ids)).sort((a, b) => a.localeCompare(b));
+  if (lastError instanceof Error) throw lastError;
+  throw new Error(msg('无法获取模型列表，请检查接口地址与跨域（CORS）设置。', 'Cannot fetch models; check the base URL and CORS settings.'));
 };
 
 /** 对话消息（与 OpenAI 接口对齐） */
