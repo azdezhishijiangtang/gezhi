@@ -25,6 +25,7 @@
 2. 构建大学区（`pnpm exec tsc -b && pnpm exec vite build --base=/gezhi/university/`）；
 3. 拼装站点：`portal/` → 根目录，两应用产物分别置于 `highschool/`、`university/`；
 4. 站点根放置 404 兜底页（大学区入口 + 路径分流脚本）：大学区为 BrowserRouter 多级路由，刷新深链时由其兜底恢复；非大学区路径弹回门厅。
+   > 大学区入口页带严格 CSP（`script-src` 为 sha256 白名单），注入分流脚本时脚本哈希必须一并写入 CSP，否则浏览器会拦截该脚本；拼装步骤内已带断言做防回归校验。
 
 ## 本地开发
 

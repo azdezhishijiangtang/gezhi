@@ -61,12 +61,26 @@ jobs:
           # 用大学区入口页兜底（资源为绝对路径，可正常加载），
           # 并在开头注入分流脚本：非大学区路径弹回门户。
           python3 - <<'EOF'
+          import base64, hashlib, re
           index = open('university/dist/index.html', encoding='utf-8').read()
-          guard = "<script>if(location.pathname.indexOf('/gezhi/university/')!==0)location.replace('/gezhi/');</script>"
+          # 大学区入口页带严格 CSP（script-src 用 sha256 白名单）。新注入的
+          # 内联分流脚本必须把自身哈希写进 CSP，否则浏览器会直接拦截，
+          # 导致「非大学区 404 弹回门厅」的分流完全失效。
+          guard_js = "if(location.pathname.indexOf('/gezhi/university/')!==0)location.replace('/gezhi/');"
+          guard = '<script>' + guard_js + '</script>'
+          digest = base64.b64encode(hashlib.sha256(guard_js.encode()).digest()).decode()
+          assert "script-src 'self'" in index, 'CSP 结构已变化，请同步更新本脚本'
+          index = index.replace("script-src 'self'", "script-src 'self' 'sha256-" + digest + "'", 1)
           assert '<head>' in index
           index = index.replace('<head>', '<head>' + guard, 1)
+          # 防回归：所有内联脚本都必须能在 CSP 里找到对应哈希
+          csp = re.search(r'Content-Security-Policy"\s+content="([^"]+)"', index).group(1)
+          allowed = set(re.findall(r"'sha256-([^']+)'", csp))
+          inline = [b for a, b in re.findall(r'<script\b([^>]*)>(.*?)</script\s*>', index, re.S | re.I) if 'src=' not in a]
+          computed = {base64.b64encode(hashlib.sha256(b.encode()).digest()).decode() for b in inline}
+          assert computed <= allowed, '有内联脚本未被 CSP 许可: ' + str(computed - allowed)
           open('_site/404.html', 'w', encoding='utf-8').write(index)
-          print('404 fallback written')
+          print('404 fallback written; inline scripts allowed:', len(computed))
           EOF
 
       - uses: actions/configure-pages@v5
