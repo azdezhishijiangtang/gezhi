@@ -1,3 +1,4 @@
+import { canReadStream, parsePayloads, readResponseText } from './compat'
 /**
  * AI 答疑服务：OpenAI 兼容接口的配置管理与流式对话。
  * 用户的 API Key 默认只存在内存中；磁盘上只保留不可用于请求的句柄。
@@ -751,9 +752,38 @@ export async function* streamChat(
       `接口返回 ${res.status}${detail ? `：${detail}` : ''}`,
     );
   }
-  if (!res.body) throw new Error('接口未返回数据流');
+  if (!canReadStream(res)) {
+    // 流式不可用（iOS Safari 旧版 / 部分定制 WebView / XHR 兜底）：
+    // 一次性读回完整响应，兼容 SSE 文本与服务商直接返回的完整 JSON。
+    let serverError = '';
+    for (const payload of parsePayloads(await readResponseText(res))) {
+      try {
+        const json = JSON.parse(payload);
+        if (json.error?.message) { serverError = json.error.message; continue; }
+        if (json.model || json.usage) {
+          onMeta?.({
+            model: json.model,
+            usage: json.usage ? {
+              prompt: json.usage.prompt_tokens ?? 0,
+              completion: json.usage.completion_tokens ?? 0,
+              total: json.usage.total_tokens ?? 0,
+            } : undefined,
+          });
+        }
+        const choice = json.choices?.[0];
+        const reasoningDelta: string | undefined =
+          choice?.delta?.reasoning_content ?? choice?.delta?.reasoning ??
+          choice?.message?.reasoning_content;
+        if (reasoningDelta) onReasoning?.(reasoningDelta);
+        const delta: string | undefined = choice?.delta?.content ?? choice?.message?.content;
+        if (delta) yield delta;
+      } catch { /* 忽略无法解析的行 */ }
+    }
+    if (serverError) throw new Error(serverError);
+    return;
+  }
 
-  const reader = res.body.getReader();
+  const reader = (res.body as ReadableStream<Uint8Array>).getReader();
   const decoder = new TextDecoder();
   let buffer = '';
 

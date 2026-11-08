@@ -35,7 +35,7 @@ export default defineConfig({
       },
     },
   },
-  build: {
+  build: { target: 'es2018',
     rollupOptions: {
       output: {
         // 供应商分包：提升缓存命中率，降低首包体积
