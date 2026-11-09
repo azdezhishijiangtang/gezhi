@@ -49,9 +49,9 @@ import { problems } from '@/data/problems';
 import { formulaGroups } from '@/data/formulas';
 
 export function useCourses(): Course[] {
-  const { lang } = useLocale();
+  const { lang, enVersion } = useLocale();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- localize* 通过闭包读取语言，lang 变了必须重算本地化数据
-  return useMemo(() => courses.map(localizeCourse), [lang]);
+  return useMemo(() => courses.map(localizeCourse), [lang, enVersion]);
 }
 
 export function useCourse(id: string | undefined): Course | undefined {
@@ -60,9 +60,9 @@ export function useCourse(id: string | undefined): Course | undefined {
 }
 
 export function useTopics(): Topic[] {
-  const { lang } = useLocale();
+  const { lang, enVersion } = useLocale();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- localize* 通过闭包读取语言，lang 变了必须重算本地化数据
-  return useMemo(() => topics.map(localizeTopic), [lang]);
+  return useMemo(() => topics.map(localizeTopic), [lang, enVersion]);
 }
 
 export function useTopic(id: string | undefined): Topic | undefined {
@@ -71,9 +71,9 @@ export function useTopic(id: string | undefined): Topic | undefined {
 }
 
 export function useProblems(): Problem[] {
-  const { lang } = useLocale();
+  const { lang, enVersion } = useLocale();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- localize* 通过闭包读取语言，lang 变了必须重算本地化数据
-  return useMemo(() => problems.map(localizeProblem), [lang]);
+  return useMemo(() => problems.map(localizeProblem), [lang, enVersion]);
 }
 
 export function useProblem(id: string | undefined): Problem | undefined {
@@ -82,7 +82,7 @@ export function useProblem(id: string | undefined): Problem | undefined {
 }
 
 export function useFormulaGroups(): FormulaGroup[] {
-  const { lang } = useLocale();
+  const { lang, enVersion } = useLocale();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- localize* 通过闭包读取语言，lang 变了必须重算本地化数据
-  return useMemo(() => formulaGroups.map(localizeFormulaGroup), [lang]);
+  return useMemo(() => formulaGroups.map(localizeFormulaGroup), [lang, enVersion]);
 }
