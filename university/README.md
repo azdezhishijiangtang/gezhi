@@ -1,69 +1,213 @@
-# React + TypeScript + Vite
+# Principia · 大学数学物理知识解答平台（大学区）
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> 面向大学数学与物理本科阶段的知识解答与学习平台：课程脉络、公式库、分级题库、知识图谱、AI 答疑与学习档案，全部在浏览器里完成。
 
-Currently, two official plugins are available:
+**在线使用：** https://azdezhishijiangtang.github.io/gezhi/university/
+（独立部署版：https://azdezhishijiangtang.github.io/Principia/ ，两者是同一套代码。）
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+> **本站是纯前端静态应用：没有后端、没有账号体系、不收集任何数据。**
+> 学习档案只保存在你自己的浏览器里；AI 答疑用的 API Key 由你自己填写，浏览器直连你配置的服务商。
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 目录
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- [它能做什么](#它能做什么)
+- [三步开始用](#三步开始用)
+- [AI 接入与三套独立存档](#ai-接入与三套独立存档)
+- [中英双语](#中英双语)
+- [密钥保护与「解锁口令」](#密钥保护与解锁口令)
+- [隐私与数据边界](#隐私与数据边界)
+- [浏览器兼容性](#浏览器兼容性)
+- [本地开发](#本地开发)
+- [部署](#部署)
+- [目录结构](#目录结构)
+- [已知限制与安全边界](#已知限制与安全边界)
+- [相关文档](#相关文档)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 它能做什么
+
+| 页面 | 路径 | 内容 |
+|---|---|---|
+| 首页 | `/` | 站点导览、科目入口与学习概览 |
+| 课程 | `/courses` | 本科数学 / 物理的课程脉络，点击进入课程详情 |
+| 课程详情 | `/courses/:courseId` | 单门课程的章节、知识点与关联题目 |
+| 知识点详情 | `/topics/:topicId` | 单个知识点的讲解、公式与关联内容 |
+| 题库 | `/problems` | 分级题目，按科目 / 难度 / 知识点筛选 |
+| 公式库 | `/formulas` | 常用公式速查，KaTeX 排版、可复制 LaTeX |
+| 知识库 / 图谱 | `/knowledge` | 知识点之间的关联与检索 |
+| **AI 答疑** | `/tutor` | 流式 AI 对话、公式渲染、可切换思考强度；回答后可选「智能自检」自动复核 |
+| 学习档案 | `/study` | 学习记录与统计 |
+| 错题本 | `/mistakes` | 错题记录与回顾 |
+| 自定义 | `/custom` | 自定义功能入口 |
+| 关于 / 支持 | `/about`、`/donate` | 关于开发者与支持信息 |
+
+特点：
+
+- **KaTeX 本地排版**：所有数学公式由浏览器本地渲染，不请求外部公式服务。
+- **中英双语**：界面与知识库内容均支持中文 / 英文切换。
+- **纯本地档案**：所有记录只在本机浏览器，不上传、不同步。
+
+---
+
+## 三步开始用
+
+1. 打开在线地址，从首页进入任一模块即可浏览课程、公式、题库（**这部分不需要任何配置**）。
+2. 要用 AI 答疑，进入 **「AI 答疑 / Tutor」** → 展开「密钥设置」卡片。
+3. 填 **接口地址**（如 `https://api.deepseek.com/v1`）、**API Key**、**模型名**（可点「刷新模型列表」自动获取）→ 保存 → 在下方输入框提问。
+
+> 设置卡片默认是展开的；若看到「收起设置」，说明输入框已经在页面上。
+
+---
+
+## AI 接入与三套独立存档
+
+本站采用 **BYOK（Bring Your Own Key）**：浏览器直连你填写的服务商，无中间服务器。
+
+| 能力 | 说明 |
+|---|---|
+| 协议 | OpenAI 兼容 `/chat/completions`（SSE 流式）与 `/models` |
+| 预设 | DeepSeek 等常见服务商 + 自定义地址（任意 OpenAI 兼容端点） |
+| 模型发现 | 「刷新模型列表」自动拉取 `/v1/models` 与 `/models`，失败显示具体原因并回退内置目录；支持手动填模型名 |
+| **三套独立存档** | 可保存 3 组「接口地址 + 模型 + 思考模式」，互不干扰，随时切换当前生效的那组（适合主力 / 备用 / 不同服务商） |
+| 思考强度 | 可调思考偏好；另有「智能选模型」全局开关 |
+| 智能自检 | 回答后自动再复核一次（会多发一次请求，可在设置里关闭）；界面有明确开关与「已开启」提示 |
+| 地址要求 | 必须是 **HTTPS**（或 localhost）；HTTPS 页面请求 HTTP 地址会被浏览器拦截，前端无法绕过 |
+
+常见失败提示都会显示**真实原因**（401 / 429 / 5xx / 网络 / CORS / SSE 业务错误），不会笼统报「请求失败」或误报 CORS。
+
+---
+
+## 中英双语
+
+- 界面右上角（或 URL 参数 `?lang=en`）切换中文 / 英文，同时同步 `<html lang>` 以便屏幕阅读器正确发音。
+- **英文知识库数据按需加载**：中文模式下不会下载英文知识数据；切到英文时才加载对应内容，避免拖慢首屏。
+- 英文数据缺失或加载失败时自动回退中文，界面仍可用。
+
+---
+
+## 密钥保护与「解锁口令」
+
+「密钥设置」卡片下方的 **「密钥保护」** 面板，是本站保护 API Key 的地方。里面的「口令」常被误解：
+
+1. **API Key**（`sk-...`）是服务商给你的，用来让 AI 干活。
+2. **解锁口令**是你自己随便设的（至少 8 位），只是给**浏览器里的临时保险箱**上锁用的本地密码。
+3. **它不是网站密码**——本站没有账号、不用注册登录；**也不是 API Key**。
+
+| 用法 | 效果 | 适合谁 |
+|---|---|---|
+| **不设口令（默认）** | Key 只存在内存里，刷新或关闭标签页立即消失；每次刷新要重新粘贴一次 Key | 最在意安全、公用电脑、临时用一次 |
+| **设口令 + 点「会话内记住」** | 用 `PBKDF2-SHA256(310000 轮)` 派生 + `AES-256-GCM` 把 Key 加密后暂存在**当前标签页**；刷新后输口令「解锁」即可，不用重贴 Key | 自己的电脑，需要反复刷新 |
+
+关键事实：
+
+- 口令**哪里都不存**、从不进入任何网络请求、也**无法找回**（忘了就点「彻底清除」，重新粘贴 API Key 再设个新口令即可，Key 本身没丢）。
+- 明文 Key **永不写入** `localStorage`、Cookie、导出备份；三套存档里保存的只是不能发请求的句柄（`@byok-vault:profile-N`）。
+- 密文只写 `sessionStorage`，**关闭标签页即清除**；最长 8 小时过期。
+- 自动锁定：空闲 **15 分钟**、页面切到后台 **3 分钟**、刷新 / 关闭页面，都会清空内存里的明文。
+- 面板右侧新增 **「?」按钮**，点开就是这套机制的白话说明（含常见问题与安全边界）。
+
+> 📖 **看不懂这个口令到底在干什么？** 请读完整说明书： **[《密钥保护说明.md》](./密钥保护说明.md)**
+> 内含「三个东西别搞混」对照表、设 / 不设的对比、逐步操作、10 条常见问题（含「忘了怎么办」）、加密参数与如实的安全边界。
+
+---
+
+## 隐私与数据边界
+
+| 数据 | 存在哪里 | 会不会离开你的设备 |
+|---|---|---|
+| 学习档案、错题、答疑记录、三套 AI 存档 | 当前浏览器 `localStorage`（键带 `mathlens-` / `principia-` 前缀） | **不会**；纯本地，无云端同步 |
+| API Key 明文 | **只在运行内存里** | 只会发往**你填写的那个服务商地址** |
+| 加密暂存密文（仅设口令时） | 当前标签页 `sessionStorage` | **不会** |
+| 解锁口令 | 不存储 | **不会** |
+| 站点自身 | 无后端、无数据库、无账号、无埋点 | —— |
+
+- 本站**没有服务器可以中转或保存**任何内容，全部数据保存在本机浏览器。
+- 清理浏览器数据会一并清掉档案，请自行做好备份。
+- 高中区（`wenqu-`）与大学区前缀不同，同域下也互不干扰。
+- 不要在公共电脑上保存密钥；用完点「彻底清除」并关闭标签页。
+
+---
+
+## 浏览器兼容性
+
+- 构建目标 `es2018`，兼容较旧浏览器内核。
+- 兼容层：`fetch` 缺失降级 XHR、`AbortController` polyfill、SSE / `ReadableStream` 降级、`TextEncoder/TextDecoder` 兜底。
+- 隐私模式 / 存储被禁用时自动降级到内存存储，页面仍可渲染和使用（刷新后数据不保留）。
+- 部署严格 CSP（内联脚本用 sha256 白名单）、`Referrer-Policy`，禁用第三方可执行脚本。
+- **无法由前端绕过的边界**：真实 CORS 限制、网络屏蔽、HTTPS→HTTP 混合内容拦截。
+
+---
+
+## 本地开发
+
+```bash
+pnpm install
+pnpm dev             # 本地开发服务器
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm exec tsc -b && pnpm exec vite build   # 生产构建
+pnpm run lint                              # ESLint
+pnpm run preview                           # 预览构建产物
+npm run start                              # node server.mjs（本地静态服务，含 SPA 兜底）
 ```
+
+技术栈：React 19 + Vite + TypeScript + Tailwind CSS + Radix UI + framer-motion + KaTeX。
+
+> 本地 dev 的 base 为 `/`，线上为 `/gezhi/university/`，两者由 `BrowserRouter basename={import.meta.env.BASE_URL}` 自动适配。
+
+---
+
+## 部署
+
+本应用同时以两种形式发布，源码分别位于 `gezhi/university/`（合并进「格致」仓库）与 `Principia/frontend/`（独立仓库），代码保持同步。
+
+- **独立仓库**：push 到 `main` 后由 GitHub Actions 构建并把 `dist/` 发布到 Pages（`https://azdezhishijiangtang.github.io/Principia/`）。
+- **格致合并站点**：`gezhi` 仓库的 `.github/workflows/deploy.yml` 会构建本应用，产物置于 `university/` 子目录，与门厅、高中区一起发布。
+
+部署注意：
+
+1. 大学区是 **BrowserRouter 多级路由**，站点根必须放置 404 兜底页以恢复深链刷新；非大学区路径会分流回门厅。
+2. 大学区入口页带**严格 CSP**（`script-src` 为 sha256 白名单）。注入分流脚本时，其哈希必须一并写入 CSP，否则会被浏览器拦截；拼装步骤内已带断言做防回归校验。
+3. 修改任何**内联脚本**后都要重算 CSP 哈希，否则页面脚本会被拒绝执行。
+4. 静态资源使用相对基路径解析（`document.baseURI`），不要改成 `window.location.origin`，否则子路径部署会 404。
+
+首次部署需在仓库 **Settings → Pages → Source** 选择 **GitHub Actions**。
+
+---
+
+## 目录结构
+
+```
+src/
+├── pages/          首页 / 课程 / 题库 / 公式库 / 知识库 / Tutor / 学习档案 / 错题本 …
+├── components/     AiSettingsCard（AI 设置 + 密钥保护面板）、MathText 等
+├── lib/            ai.ts（SSE 流式请求）、byokVault.ts（密钥保险库）、
+│                   modelCatalog.ts（模型发现）、compat.ts（浏览器兼容层）
+├── i18n/           中英文界面文案与知识数据（英文按需加载）
+└── data/           中文课程 / 知识点 / 题目 / 公式数据
+```
+
+---
+
+## 已知限制与安全边界
+
+- **首包偏大（约 5.2 MB，gzip ≈ 1.85 MB）**：中文课程知识正文为静态打包，首页即消费全量数据。英文数据已改为按需加载；慢网络下首屏仍可能需要等待较久（本地 / 正常网络为秒开）。进一步按课程异步拆分需改造所有同步数据 hooks，尚未实施。
+- **纯前端 BYOK 的不可能三角**：发请求那一刻浏览器必须短暂持有明文 Key。若页面被注入恶意脚本（XSS），攻击者仍可能在解锁期间读取。本机制把「长期磁盘明文」变成「短暂内存明文」，并配合严格 CSP 降低风险，但**不能宣称绝对不会泄露**。
+- 请务必使用**额度受限、可随时撤销的专用子密钥**，不要用主账号密钥，并定期轮换。
+- AI 回答内容经过转义处理，公式、Markdown 与链接均不会执行脚本。
+
+完整技术说明见 **[《密钥保护说明.md》](./密钥保护说明.md)**。
+
+---
+
+## 相关文档
+
+| 文档 | 内容 |
+|---|---|
+| [《密钥保护说明.md》](./密钥保护说明.md) | 解锁口令机制完整说明书（是什么、怎么用、FAQ、加密参数、安全边界） |
+| `../README.md`（格致仓库） | 门厅 / 高中区 / 大学区合并与部署总览 |
+| `.github/workflows/deploy.yml` | 自动构建与 Pages 部署 |
